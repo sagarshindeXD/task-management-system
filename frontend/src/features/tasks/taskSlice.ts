@@ -2,7 +2,8 @@ import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import axios from 'axios';
 import { RootState } from '../../store/store';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+// Ensure no trailing slash in the base URL
+const API_URL = (process.env.REACT_APP_API_URL || 'http://localhost:5000').replace(/\/+$/, '');
 const API_BASE = `${API_URL}/api`;
 
 export interface User {

@@ -2,7 +2,8 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
 import { RootState } from '../../store/store';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+// Ensure no trailing slash in the base URL
+const API_URL = (process.env.REACT_APP_API_URL || 'http://localhost:5000').replace(/\/+$/, '');
 const API_BASE = `${API_URL}/api`;
 
 // Response types
@@ -62,8 +63,9 @@ export const register = createAsyncThunk<
   'auth/register',
   async ({ name, email, password }, { rejectWithValue }) => {
     try {
-      console.log('Making register request to:', `${API_BASE}/users/register`);
-      const response = await axios.post<AuthResponse>(`${API_BASE}/users/register`, {
+      const registerUrl = `${API_BASE}/users/register`;
+      console.log('Making register request to:', registerUrl);
+      const response = await axios.post<AuthResponse>(registerUrl, {
         name,
         email,
         password,
@@ -82,8 +84,9 @@ export const login = createAsyncThunk<AuthResponse, LoginCredentials, { rejectVa
   'auth/login',
   async ({ email, password }, { rejectWithValue }) => {
     try {
-      console.log('Making login request to:', `${API_BASE}/users/login`);
-      const response = await axios.post<AuthResponse>(`${API_BASE}/users/login`, {
+      const loginUrl = `${API_BASE}/users/login`;
+      console.log('Making login request to:', loginUrl);
+      const response = await axios.post<AuthResponse>(loginUrl, {
         email,
         password,
       });

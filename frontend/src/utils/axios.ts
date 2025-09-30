@@ -2,10 +2,10 @@ import axios from 'axios';
 import { store } from '../store/store';
 import { logout } from '../features/auth/authSlice';
 
-// Use the full API URL including /api
-const baseURL = process.env.REACT_APP_API_URL ? 
-  `${process.env.REACT_APP_API_URL}/api` : 
-  'http://localhost:5000/api';
+// Ensure no trailing slash in the base URL
+const baseURL = process.env.REACT_APP_API_URL 
+  ? `${process.env.REACT_APP_API_URL.replace(/\/+$/, '')}/api`
+  : 'http://localhost:5000/api';
 
 const api = axios.create({
   baseURL,
