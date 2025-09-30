@@ -162,9 +162,9 @@ export const fetchTaskById = createAsyncThunk<Task, string, { state: RootState; 
   }
 );
 
-export const createTask = createAsyncThunk(
+export const createTask = createAsyncThunk<Task, Partial<Task>, { state: RootState }>(
   'tasks/createTask',
-  async (taskData: Partial<Task>, { rejectWithValue, getState }) => {
+  async (taskData, { rejectWithValue, getState, dispatch }) => {
     try {
       // Ensure assignedTo is an array and not empty
       if (!taskData.assignedTo || !Array.isArray(taskData.assignedTo) || taskData.assignedTo.length === 0) {
@@ -195,6 +195,19 @@ export const createTask = createAsyncThunk(
       }
       
       console.log('Task created successfully:', response.data.data.task);
+      
+      // After successful task creation, refresh the task list
+      const state = getState() as RootState;
+      
+      // Refresh the task list with current filters
+      await dispatch(fetchTasks());
+      
+      // If the current user is assigned to this task, refresh their assigned tasks too
+      const currentUserId = state.auth.user?._id;
+      if (currentUserId && processedAssignees.includes(currentUserId)) {
+        await dispatch(fetchAssignedTasks());
+      }
+      
       return response.data.data.task;
     } catch (error: any) {
       console.error('Error in createTask:', {
@@ -207,16 +220,15 @@ export const createTask = createAsyncThunk(
           data: error.config?.data,
         }
       });
-      
-      const errorMessage = error.response?.data?.message || 
-                         error.response?.data?.error?.message || 
-                         error.message || 
+
+      const errorMessage = error.response?.data?.message ||
+                         error.response?.data?.error?.message ||
+                         error.message ||
                          'Failed to create task';
       return rejectWithValue(errorMessage);
     }
   }
 );
-
 export const updateTask = createAsyncThunk(
   'tasks/updateTask',
   async (
@@ -271,6 +283,16 @@ const taskSlice = createSlice({
     clearError: (state) => {
       state.error = null;
     },
+    // Add a new reducer to update a specific task
+    updateTaskInList: (state, action: PayloadAction<Task>) => {
+      const index = state.tasks.findIndex(task => task._id === action.payload._id);
+      if (index !== -1) {
+        state.tasks[index] = action.payload;
+      } else {
+        state.tasks.unshift(action.payload);
+        state.total += 1;
+      }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -305,12 +327,17 @@ const taskSlice = createSlice({
         state.error = null;
       })
       .addCase(createTask.fulfilled, (state, action: PayloadAction<Task>) => {
-        // Add the new task to the beginning of the list
-        state.tasks.unshift(action.payload);
-        state.total += 1;
+        // Add the new task to the beginning of the list if it's not already there
+        const existingIndex = state.tasks.findIndex(t => t._id === action.payload._id);
+        if (existingIndex === -1) {
+          state.tasks.unshift(action.payload);
+          state.total += 1;
+        } else {
+          // Update existing task if it already exists
+          state.tasks[existingIndex] = action.payload;
+        }
         state.error = null;
-        // Reset status to idle after successful creation
-        state.status = 'idle';
+        state.status = 'succeeded';
       })
       .addCase(createTask.rejected, (state, action) => {
         state.status = 'failed';
@@ -352,7 +379,13 @@ const taskSlice = createSlice({
   },
 });
 
-export const { setFilters, resetFilters, clearCurrentTask, clearError } = taskSlice.actions;
+export const { 
+  setFilters, 
+  resetFilters, 
+  clearCurrentTask, 
+  clearError, 
+  updateTaskInList 
+} = taskSlice.actions;
 
 export const selectAllTasks = (state: RootState) => state.tasks.tasks;
 export const selectCurrentTask = (state: RootState) => state.tasks.currentTask;

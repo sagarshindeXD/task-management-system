@@ -1,15 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link as RouterLink, useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../hooks/reduxHooks';
+import { store } from '../store/store';
+import { RootState } from '../store/store';
 import { 
   fetchTasks, 
+  fetchAssignedTasks,
   deleteTask,
   selectAllTasks, 
   selectTaskFilters, 
   selectTaskStatus,
   selectTotalTasks,
-  setFilters,
   selectTaskError,
+  setFilters,
 } from '../features/tasks/taskSlice';
 import { 
   Box, 
@@ -134,9 +137,24 @@ const Tasks: React.FC = () => {
     dispatch(setFilters(newFilters));
   }, [searchParams, dispatch]);
   
-  // Fetch tasks when filters change
+  // Fetch tasks when component mounts and when filters change
   useEffect(() => {
-    dispatch(fetchTasks());
+    const fetchData = async () => {
+      try {
+        // Always fetch the main task list
+        await dispatch(fetchTasks() as any);
+        
+        // Also fetch assigned tasks if the user is logged in
+        const state = store.getState() as RootState;
+        if (state.auth.isAuthenticated) {
+          await dispatch(fetchAssignedTasks() as any);
+        }
+      } catch (error) {
+        console.error('Error fetching tasks:', error);
+      }
+    };
+
+    fetchData();
   }, [filters, dispatch]);
   
   // Handle filter changes

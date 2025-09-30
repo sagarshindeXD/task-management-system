@@ -46,11 +46,14 @@ interface TaskFormValues {
   assignee: string;
   submit?: string;
 }
-const NewTask: React.FC = () => {
+const NewTask = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [status, setStatus] = useState<{ success: boolean; error: string | null }>({ success: false, error: null });
   const { users = [], status: userStatus } = useAppSelector((state: RootState) => state.users);
+  const taskStatus = useAppSelector((state: RootState) => state.tasks.status);
+  const taskError = useAppSelector((state: RootState) => state.tasks.error);
   
   // Debugging
   useEffect(() => {
@@ -74,38 +77,26 @@ const NewTask: React.FC = () => {
       assignee: '',
     },
     validationSchema: validationSchema,
-    validateOnMount: true,
     validateOnChange: true,
     validateOnBlur: true,
-    onSubmit: async (values: TaskFormValues, { setSubmitting, setFieldError }) => {
+    onSubmit: async (values, { setSubmitting, setFieldError, resetForm }) => {
       try {
         setIsSubmitting(true);
+        setStatus({ success: false, error: null });
         
         // Ensure assignee is provided
         if (!values.assignee) {
-          setFieldError('assignee', 'Please select an assignee');
+          const errorMsg = 'Please select an assignee';
+          setFieldError('assignee', errorMsg);
+          setStatus({ success: false, error: errorMsg });
           return;
         }
+        
+        // Reset any previous errors
+        setFieldError('submit', '');
 
         // Ensure the assignee ID is properly formatted as a MongoDB ObjectId
         const assigneeId = values.assignee.trim();
-        
-        // Log the users for debugging
-        console.log('All available users:', JSON.stringify(users, null, 2));
-        console.log('Selected assignee ID (raw):', assigneeId, 'Type:', typeof assigneeId);
-        
-        // Log each user's ID for comparison
-        console.log('User IDs in the system:');
-        users.forEach((user, index) => {
-          console.log(`User ${index + 1}:`, {
-            _id: user._id,
-            name: user.name,
-            email: user.email,
-            'Type of _id': typeof user._id,
-            'Exact match with selected?': user._id === assigneeId ? 'YES' : 'NO',
-            'Trimmed match?': user._id.trim() === assigneeId.trim() ? 'YES' : 'NO'
-          });
-        });
         
         // Verify the user exists in the local state with loose comparison
         const selectedUser = users.find(user => user._id.toString() === assigneeId.toString().trim());
@@ -115,8 +106,6 @@ const NewTask: React.FC = () => {
           setFieldError('assignee', 'Selected user is not valid. Please select a user from the list.');
           return;
         }
-        
-        console.log('Selected user found:', selectedUser);
         
         const taskData = {
           title: values.title,
@@ -129,8 +118,25 @@ const NewTask: React.FC = () => {
         
         console.log('Sending task data:', taskData);
 
-        await dispatch(createTask(taskData)).unwrap();
-        navigate('/tasks');
+        const result = await dispatch(createTask(taskData) as any);
+        
+        if (createTask.fulfilled.match(result)) {
+          // Task created successfully
+          setStatus({ success: true, error: null });
+          
+          // Show success message briefly before navigating
+          setTimeout(() => {
+            resetForm();
+            setSubmitting(false);
+            // Navigate to tasks list
+            navigate('/tasks', { replace: true });
+          }, 1000);
+        } else if (createTask.rejected.match(result)) {
+          // Handle rejection
+          const errorMsg = (result.payload as string) || 'Failed to create task';
+          setFieldError('submit', errorMsg);
+          console.error('Task creation failed:', result.error);
+        }
       } catch (error: any) {
         const errorMessage = error.message || 'Failed to create task';
         setFieldError('submit', errorMessage);
@@ -141,6 +147,23 @@ const NewTask: React.FC = () => {
       }
     },
   });
+
+  // Show success message if task was created successfully
+  if (status?.success) {
+    return (
+      <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
+        <Paper elevation={3} sx={{ p: 4, textAlign: 'center' }}>
+          <Typography variant="h5" component="h1" gutterBottom color="success.main">
+            Task Created Successfully!
+          </Typography>
+          <Typography variant="body1" paragraph>
+            Redirecting to tasks list...
+          </Typography>
+          <CircularProgress color="success" />
+        </Paper>
+      </Container>
+    );
+  }
 
   return (
     <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
@@ -248,9 +271,9 @@ const NewTask: React.FC = () => {
             )}
           </FormControl>
           
-          {formik.errors.submit && (
+          {(formik.errors.submit || status?.error) && (
             <Typography color="error" sx={{ mt: 2 }}>
-              {formik.errors.submit}
+              {formik.errors.submit || status?.error}
             </Typography>
           )}
           
