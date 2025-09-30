@@ -179,48 +179,42 @@ export const createTask = createAsyncThunk(
         return processedId;
       });
 
-        // Prepare the task data with processed assignees
-        const taskPayload = {
-          ...taskData,
-          assignedTo: processedAssignees
-        };
+      // Prepare the task data with processed assignees
+      const taskPayload = {
+        ...taskData,
+        assignedTo: processedAssignees
+      };
 
-        console.log('Sending task data to server:', JSON.stringify(taskPayload, null, 2));
+      console.log('Sending task data to server:', JSON.stringify(taskPayload, null, 2));
 
-        try {
-          const response = await api.post<{ data: { task: Task } }>('/tasks', taskPayload);
-          
-          if (!response?.data?.data?.task) {
-            console.error('Invalid response format from server:', response?.data);
-            throw new Error('Invalid response from server');
-          }
-          
-          console.log('Task created successfully:', response.data.data.task);
-          return response.data.data.task;
-        } catch (error: any) {
-          console.error('API Error Details:', {
-            message: error.message,
-            response: error.response?.data,
-            status: error.response?.status,
-            headers: error.response?.headers,
-            config: {
-              url: error.config?.url,
-              method: error.config?.method,
-              data: error.config?.data,
-              headers: error.config?.headers,
-            }
-          });
-          throw error;
-        }
-      } catch (error: any) {
-        console.error('Error in createTask:', error);
-        const errorMessage = error.response?.data?.message || 
-                           error.response?.data?.error?.message || 
-                           error.message || 
-                           'Failed to create task';
-        return rejectWithValue(errorMessage);
+      const response = await api.post<{ data: { task: Task } }>('/tasks', taskPayload);
+      
+      if (!response?.data?.data?.task) {
+        console.error('Invalid response format from server:', response?.data);
+        throw new Error('Invalid response from server');
       }
+      
+      console.log('Task created successfully:', response.data.data.task);
+      return response.data.data.task;
+    } catch (error: any) {
+      console.error('Error in createTask:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        config: {
+          url: error.config?.url,
+          method: error.config?.method,
+          data: error.config?.data,
+        }
+      });
+      
+      const errorMessage = error.response?.data?.message || 
+                         error.response?.data?.error?.message || 
+                         error.message || 
+                         'Failed to create task';
+      return rejectWithValue(errorMessage);
     }
+  }
 );
 
 export const updateTask = createAsyncThunk(
@@ -306,9 +300,19 @@ const taskSlice = createSlice({
         state.error = action.payload as string;
       })
       // Create Task
+      .addCase(createTask.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
       .addCase(createTask.fulfilled, (state, action: PayloadAction<Task>) => {
+        state.status = 'succeeded';
         state.tasks.unshift(action.payload);
         state.total += 1;
+        state.error = null;
+      })
+      .addCase(createTask.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload as string || 'Failed to create task';
       })
       // Update Task
       .addCase(updateTask.fulfilled, (state, action: PayloadAction<Task>) => {
