@@ -13,8 +13,9 @@ const app = express();
 const port = process.env.PORT || 5000;
 
 // CORS Configuration
-const allowedOrigins = ['http://localhost:3000'];
-
+const allowedOrigins = ['http://localhost:3000',
+'https://your-frontend-render-url.onrender.com' // Replace with your frontend URL
+];
 const corsOptions = {
   origin: function (origin, callback) {
     if (!origin || allowedOrigins.indexOf(origin) !== -1) {
