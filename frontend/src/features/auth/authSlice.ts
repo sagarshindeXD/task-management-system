@@ -92,8 +92,8 @@ export const login = createAsyncThunk<AuthResponse, LoginCredentials, { rejectVa
   }
 );
 
-// Define the API response type
-interface MeResponse {
+// Define the API response type for /users/me endpoint
+interface MeApiResponse {
   status: string;
   data: {
     user: User;
@@ -111,13 +111,13 @@ export const getMe = createAsyncThunk<User, void, { state: RootState; rejectValu
         return rejectWithValue('No authentication token found');
       }
       
-      console.log('Making request to /me endpoint with token:', auth.token);
-      const response = await api.get<MeResponse>('/me');
+      console.log('Making request to /users/me endpoint with token:', auth.token);
+      const response = await api.get<MeApiResponse>('/users/me');
       
-      console.log('Raw response from /me:', response.data);
+      console.log('Raw response from /users/me:', response.data);
       
       // Extract user data from the response
-      const userData = response.data.data?.user;
+      const userData = response.data?.data?.user;
       
       if (!userData) {
         console.error('No user data in response:', response.data);
