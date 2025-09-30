@@ -57,6 +57,39 @@ exports.getMyAssignedTasks = catchAsync(async (req, res, next) => {
   });
 });
 
+// @desc    Get a single task by ID
+// @route   GET /api/tasks/:id
+// @access  Private
+exports.getTask = catchAsync(async (req, res, next) => {
+  const task = await Task.findById(req.params.id)
+    .populate('assignedTo', 'name email')
+    .populate('createdBy', 'name email');
+
+  if (!task) {
+    return next(new AppError('No task found with that ID', 404));
+  }
+
+  // Check if the user has permission to view this task
+  // (either the creator or an assignee)
+  const isCreator = task.createdBy._id.toString() === req.user.id;
+  const isAssignee = task.assignedTo.some(
+    assignee => assignee._id.toString() === req.user.id
+  );
+
+  if (!isCreator && !isAssignee && req.user.role !== 'admin') {
+    return next(
+      new AppError('You do not have permission to view this task', 403)
+    );
+  }
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      task
+    }
+  });
+});
+
 // @desc    Get all tasks
 // @route   GET /api/tasks
 // @access  Private
