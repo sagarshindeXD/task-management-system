@@ -4,8 +4,10 @@ import { logout } from '../features/auth/authSlice';
 
 // Ensure no trailing slash in the base URL
 const baseURL = process.env.REACT_APP_API_URL 
-  ? `${process.env.REACT_APP_API_URL.replace(/\/+$/, '')}/api`
+  ? `${process.env.REACT_APP_API_URL.trim().replace(/\/+$/, '')}/api`
   : 'http://localhost:5000/api';
+
+console.log('Using API base URL:', baseURL); // Debug log
 
 const api = axios.create({
   baseURL,
