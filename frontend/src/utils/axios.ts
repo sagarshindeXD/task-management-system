@@ -2,12 +2,23 @@ import axios from 'axios';
 import { store } from '../store/store';
 import { logout } from '../features/auth/authSlice';
 
+// Debug environment variables
+console.log('Environment variables:', {
+  NODE_ENV: process.env.NODE_ENV,
+  REACT_APP_API_URL: process.env.REACT_APP_API_URL
+});
+
 // Ensure no trailing slash in the base URL
 const baseURL = process.env.REACT_APP_API_URL 
   ? `${process.env.REACT_APP_API_URL.trim().replace(/\/+$/, '')}/api`
   : 'http://localhost:5000/api';
 
 console.log('Using API base URL:', baseURL); // Debug log
+
+// Validate the base URL
+if (!baseURL.includes('task-management-system-rimh.onrender.com') && !baseURL.includes('localhost')) {
+  console.warn('Warning: Using unexpected API base URL:', baseURL);
+}
 
 const api = axios.create({
   baseURL,
