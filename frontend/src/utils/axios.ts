@@ -2,8 +2,10 @@ import axios from 'axios';
 import { store } from '../store/store';
 import { logout } from '../features/auth/authSlice';
 
+// Remove /api from the base URL since we're already including it in the endpoints
+const baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api',
+  baseURL,
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',

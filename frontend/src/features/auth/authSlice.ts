@@ -2,7 +2,7 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
 import { RootState } from '../../store/store';
 
-const API_URL = `${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/users`;
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 // Response types
 interface AuthResponse {
@@ -61,7 +61,7 @@ export const register = createAsyncThunk<
   'auth/register',
   async ({ name, email, password }, { rejectWithValue }) => {
     try {
-      const response = await axios.post<AuthResponse>(`${API_URL}/register`, {
+      const response = await axios.post<AuthResponse>(`${API_URL}/users/register`, {
         name,
         email,
         password,
@@ -80,7 +80,7 @@ export const login = createAsyncThunk<AuthResponse, LoginCredentials, { rejectVa
   'auth/login',
   async ({ email, password }, { rejectWithValue }) => {
     try {
-      const response = await axios.post<AuthResponse>(`${API_URL}/login`, {
+      const response = await axios.post<AuthResponse>(`${API_URL}/users/login`, {
         email,
         password,
       });
