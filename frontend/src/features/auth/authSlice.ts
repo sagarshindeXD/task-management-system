@@ -222,11 +222,11 @@ const authSlice = createSlice({
         state.user = action.payload; // payload is the user object directly
         state.isAuthenticated = true;
       })
-      .addCase(getMe.rejected, (state) => {
+      .addCase(getMe.rejected, (state, action) => {
         state.status = 'failed';
-        state.isAuthenticated = false;
-        state.token = null;
-        localStorage.removeItem('token');
+        // Don't clear the token or isAuthenticated here
+        // Just set the error message
+        state.error = action.payload as string;
       });
   },
 });

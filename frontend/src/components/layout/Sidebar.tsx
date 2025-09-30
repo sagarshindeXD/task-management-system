@@ -99,25 +99,6 @@ const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onDrawerToggle }) => {
         ))}
       </List>
       <Divider sx={{ mt: 'auto' }} />
-      <List>
-        <ListItem disablePadding>
-          <ListItemButton
-            sx={{
-              '&:hover': {
-                backgroundColor: 'action.hover',
-              },
-              borderRadius: 2,
-              mx: 1,
-              my: 0.5,
-            }}
-          >
-            <ListItemIcon sx={{ minWidth: 40 }}>
-              <SettingsIcon />
-            </ListItemIcon>
-            <ListItemText primary="Settings" />
-          </ListItemButton>
-        </ListItem>
-      </List>
     </div>
   );
 

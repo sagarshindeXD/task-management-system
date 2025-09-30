@@ -90,14 +90,22 @@ const theme = createTheme({
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, status, token } = useAppSelector((state) => state.auth);
   const [isLoading, setIsLoading] = useState(true);
+  const dispatch = useAppDispatch();
 
-  // Add a small delay to prevent flash of content
+  // Check if we need to verify the user's session
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 100);
-    return () => clearTimeout(timer);
-  }, []);
+    if (token && !isAuthenticated && status !== 'loading') {
+      // If we have a token but aren't authenticated, try to get the user data
+      dispatch(getMe())
+        .then(() => setIsLoading(false))
+        .catch(() => setIsLoading(false));
+    } else {
+      const timer = setTimeout(() => {
+        setIsLoading(false);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [token, isAuthenticated, status, dispatch]);
 
   // If we're still loading the auth state, show a loading indicator
   if (status === 'loading' || isLoading) {
@@ -118,7 +126,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/login" state={{ from: window.location.pathname }} replace />;
   }
 
-  // If we have a token but not authenticated yet, we're still verifying
+  // If we have a token but not authenticated yet, show a loading state
   if (token && !isAuthenticated) {
     return (
       <Box 
@@ -152,18 +160,34 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
 // Main App Component
 const AppContent = () => {
   const dispatch = useAppDispatch();
-  const { status } = useAppSelector((state) => state.auth);
+  const { status, token, isAuthenticated } = useAppSelector((state) => state.auth);
+  const [initialized, setInitialized] = useState(false);
 
   // Check if user is logged in on initial load
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      dispatch(getMe());
-    }
-  }, [dispatch]);
+    const initializeAuth = async () => {
+      const storedToken = localStorage.getItem('token');
+      if (storedToken && !isAuthenticated) {
+        try {
+          await dispatch(getMe()).unwrap();
+        } catch (error) {
+          console.error('Failed to initialize auth:', error);
+          // Don't clear the token here, let ProtectedRoute handle it
+        }
+      }
+      setInitialized(true);
+    };
 
-  if (status === 'loading') {
-    return <div>Loading...</div>; // Or a loading spinner
+    initializeAuth();
+  }, [dispatch, isAuthenticated]);
+
+  // Show loading state only during initial app load
+  if (!initialized) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+        <CircularProgress />
+      </Box>
+    );
   }
 
   return (
