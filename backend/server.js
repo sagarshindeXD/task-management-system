@@ -15,7 +15,7 @@ const port = process.env.PORT || 5000;
 // CORS Configuration
 const allowedOrigins = [
   'http://localhost:3000',
-  'https://task-management-frontend.onrender.com' // Your frontend URL on Render
+  'https://task-management-system-five-theta.vercel.app' // Vercel frontend URL
 ];
 const corsOptions = {
   origin: function (origin, callback) {
