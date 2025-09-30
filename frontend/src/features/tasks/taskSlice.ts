@@ -2,7 +2,8 @@ import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import axios from 'axios';
 import { RootState } from '../../store/store';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const API_BASE = `${API_URL}/api`;
 
 export interface User {
   _id: string;
@@ -69,7 +70,7 @@ export const fetchAssignedTasks = createAsyncThunk<{ tasks: Task[]; total: numbe
   async (_, { rejectWithValue }) => {
     try {
       const response = await axios.get<{ data: { tasks: Task[]; total: number } }>(
-        `${API_URL}/tasks/assigned-to-me`
+        `${API_BASE}/tasks/assigned-to-me`
       );
       return {
         tasks: response.data.data.tasks,
@@ -93,7 +94,7 @@ export const fetchTasks = createAsyncThunk<FetchTasksResponse, void, { state: Ro
         return rejectWithValue('User not authenticated');
       }
 
-      let url = `${API_URL}/tasks?page=${page}&limit=${limit}&sort=${sort}&userId=${userId}`;
+      let url = `${API_BASE}/tasks?page=${page}&limit=${limit}&sort=${sort}&userId=${userId}`;
       
       if (status.length > 0) {
         url += `&status=${status.join(',')}`;
@@ -139,7 +140,7 @@ export const updateTaskStatus = createAsyncThunk<
     try {
       const { auth } = getState();
       const response = await axios.patch<{ data: { task: Task } }>(
-        `${API_URL}/tasks/${id}/status`,
+        `${API_BASE}/tasks/${id}/status`,
         { status },
         {
           headers: {
@@ -160,7 +161,7 @@ export const fetchTaskById = createAsyncThunk(
     'tasks/fetchTaskById',
     async (id: string, { rejectWithValue }) => {
       try {
-        const response = await axios.get<{ data: { task: Task } }>(`${API_URL}/tasks/${id}`, {
+        const response = await axios.get<{ data: { task: Task } }>(`${API_BASE}/tasks/${id}`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
@@ -199,7 +200,7 @@ export const fetchTaskById = createAsyncThunk(
 
         try {
           const response = await axios.post<{ data: { task: Task } }>(
-            `${API_URL}/tasks`, 
+            `${API_BASE}/tasks`, 
             taskPayload,
             {
               headers: {
@@ -250,7 +251,7 @@ export const updateTask = createAsyncThunk(
   ) => {
     try {
       const response = await axios.patch<{ data: { task: Task } }>(
-        `${API_URL}/tasks/${id}`,
+        `${API_BASE}/tasks/${id}`,
         taskData,
         {
           headers: {
@@ -270,7 +271,7 @@ export const deleteTask = createAsyncThunk(
   'tasks/deleteTask',
   async (id: string, { rejectWithValue }) => {
     try {
-      await axios.delete(`${API_URL}/tasks/${id}`, {
+      await axios.delete(`${API_BASE}/tasks/${id}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
