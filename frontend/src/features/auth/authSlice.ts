@@ -1,10 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import axios from 'axios';
 import { RootState } from '../../store/store';
-
-// Ensure no trailing slash in the base URL
-const API_URL = (process.env.REACT_APP_API_URL || 'http://localhost:5000').replace(/\/+$/, '');
-const API_BASE = `${API_URL}/api`;
+import api from '../../utils/axios'; // Import the configured axios instance
 
 // Response types
 interface AuthResponse {
@@ -63,9 +59,8 @@ export const register = createAsyncThunk<
   'auth/register',
   async ({ name, email, password }, { rejectWithValue }) => {
     try {
-      const registerUrl = `${API_BASE}/users/register`;
-      console.log('Making register request to:', registerUrl);
-      const response = await axios.post<AuthResponse>(registerUrl, {
+      console.log('Making register request to register endpoint');
+      const response = await api.post<AuthResponse>('/users/register', {
         name,
         email,
         password,
@@ -84,9 +79,8 @@ export const login = createAsyncThunk<AuthResponse, LoginCredentials, { rejectVa
   'auth/login',
   async ({ email, password }, { rejectWithValue }) => {
     try {
-      const loginUrl = `${API_BASE}/users/login`;
-      console.log('Making login request to:', loginUrl);
-      const response = await axios.post<AuthResponse>(loginUrl, {
+      console.log('Making login request to login endpoint');
+      const response = await api.post<AuthResponse>('/users/login', {
         email,
         password,
       });
@@ -118,11 +112,7 @@ export const getMe = createAsyncThunk<User, void, { state: RootState; rejectValu
       }
       
       console.log('Making request to /me endpoint with token:', auth.token);
-      const response = await axios.get<MeResponse>(`${API_URL}/me`, {
-        headers: {
-          Authorization: `Bearer ${auth.token}`,
-        },
-      });
+      const response = await api.get<MeResponse>('/me');
       
       console.log('Raw response from /me:', response.data);
       
@@ -246,20 +236,10 @@ export const updateProfile = createAsyncThunk(
   'auth/updateProfile',
   async (
     { name, email }: { name: string; email: string },
-    { getState, rejectWithValue }
+    { rejectWithValue }
   ) => {
     try {
-      const { token } = (getState() as RootState).auth;
-      const response = await axios.patch<{ user: User }>(
-        `${API_URL}/me`,
-        { name, email },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await api.patch<{ user: User }>('/me', { name, email });
       return response.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to update profile');
@@ -272,20 +252,10 @@ export const changePassword = createAsyncThunk(
   'auth/changePassword',
   async (
     { currentPassword, newPassword }: { currentPassword: string; newPassword: string },
-    { getState, rejectWithValue }
+    { rejectWithValue }
   ) => {
     try {
-      const { token } = (getState() as RootState).auth;
-      await axios.patch(
-        `${API_URL}/update-password`,
-        { currentPassword, newPassword },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      await api.patch('/update-password', { currentPassword, newPassword });
       return true;
     } catch (error: any) {
       return rejectWithValue(
