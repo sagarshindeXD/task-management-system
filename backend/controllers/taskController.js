@@ -4,6 +4,27 @@ const User = require('../models/User');
 const AppError = require('../utils/AppError');
 const catchAsync = require('../utils/catchAsync');
 
+// @desc    Get tasks assigned to the current user
+// @route   GET /api/tasks/assigned-to-me
+// @access  Private
+exports.getMyAssignedTasks = catchAsync(async (req, res, next) => {
+  const tasks = await Task.find({ 
+    assignedTo: req.user.id,
+    status: { $ne: 'completed' }
+  })
+  .populate('assignedTo', 'name email')
+  .populate('createdBy', 'name email')
+  .sort('-createdAt');
+
+  res.status(200).json({
+    status: 'success',
+    results: tasks.length,
+    data: {
+      tasks
+    }
+  });
+});
+
 // @desc    Get all tasks
 // @route   GET /api/tasks
 // @access  Private
