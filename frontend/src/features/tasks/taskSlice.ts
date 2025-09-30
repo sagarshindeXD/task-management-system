@@ -1,10 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import axios from 'axios';
 import { RootState } from '../../store/store';
-
-// Ensure no trailing slash in the base URL
-const API_URL = (process.env.REACT_APP_API_URL || 'http://localhost:5000').replace(/\/+$/, '');
-const API_BASE = `${API_URL}/api`;
+import api from '../../utils/axios'; // Import the configured axios instance
+import type { AxiosError } from 'axios'; // Import AxiosError type
 
 export interface User {
   _id: string;
@@ -64,14 +61,13 @@ interface FetchTasksResponse {
   };
   total: number;
 }
-
 // Add new async thunk for fetching assigned tasks
 export const fetchAssignedTasks = createAsyncThunk<{ tasks: Task[]; total: number }, void, { state: RootState }>(
   'tasks/fetchAssignedTasks',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await axios.get<{ data: { tasks: Task[]; total: number } }>(
-        `${API_BASE}/tasks/assigned-to-me`
+      const response = await api.get<{ data: { tasks: Task[]; total: number } }>(
+        '/tasks/assigned-to-me'
       );
       return {
         tasks: response.data.data.tasks,
@@ -95,25 +91,27 @@ export const fetchTasks = createAsyncThunk<FetchTasksResponse, void, { state: Ro
         return rejectWithValue('User not authenticated');
       }
 
-      let url = `${API_BASE}/tasks?page=${page}&limit=${limit}&sort=${sort}&userId=${userId}`;
+      // Build query parameters
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+        sort,
+        userId
+      });
       
       if (status.length > 0) {
-        url += `&status=${status.join(',')}`;
+        params.append('status', status.join(','));
       }
       
       if (priority.length > 0) {
-        url += `&priority=${priority.join(',')}`;
+        params.append('priority', priority.join(','));
       }
       
       if (search) {
-        url += `&search=${encodeURIComponent(search)}`;
+        params.append('search', search);
       }
 
-      const response = await axios.get<FetchTasksResponse>(url, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
+      const response = await api.get<FetchTasksResponse>(`/tasks?${params.toString()}`);
       return response.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch tasks');
@@ -137,17 +135,11 @@ export const updateTaskStatus = createAsyncThunk<
   { state: RootState; rejectValue: string }
 >(
   'tasks/updateStatus',
-  async ({ id, status }, { rejectWithValue, getState }) => {
+  async ({ id, status }, { rejectWithValue }) => {
     try {
-      const { auth } = getState();
-      const response = await axios.patch<{ data: { task: Task } }>(
-        `${API_BASE}/tasks/${id}/status`,
-        { status },
-        {
-          headers: {
-            Authorization: `Bearer ${auth.token}`,
-          },
-        }
+      const response = await api.patch<{ data: { task: Task } }>(
+        `/tasks/${id}/status`,
+        { status }
       );
       return response.data.data.task;
     } catch (error: any) {
@@ -158,38 +150,34 @@ export const updateTaskStatus = createAsyncThunk<
   }
 );
 
-export const fetchTaskById = createAsyncThunk(
-    'tasks/fetchTaskById',
-    async (id: string, { rejectWithValue }) => {
-      try {
-        const response = await axios.get<{ data: { task: Task } }>(`${API_BASE}/tasks/${id}`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        });
-        return response.data.data.task; // This is correct based on the interface
-      } catch (error: any) {
-        return rejectWithValue(error.response?.data?.message || 'Failed to fetch task');
-      }
+export const fetchTaskById = createAsyncThunk<Task, string, { state: RootState; rejectValue: string }>(
+  'tasks/fetchTaskById',
+  async (id: string, { rejectWithValue }) => {
+    try {
+      const response = await api.get<{ data: { task: Task } }>(`/tasks/${id}`);
+      return response.data.data.task;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch task');
     }
-  );
+  }
+);
 
-  export const createTask = createAsyncThunk(
-    'tasks/createTask',
-    async (taskData: Partial<Task>, { rejectWithValue, getState }) => {
-      try {
-        // Ensure assignedTo is an array and not empty
-        if (!taskData.assignedTo || !Array.isArray(taskData.assignedTo) || taskData.assignedTo.length === 0) {
-          return rejectWithValue('At least one assignee is required');
-        }
+export const createTask = createAsyncThunk(
+  'tasks/createTask',
+  async (taskData: Partial<Task>, { rejectWithValue, getState }) => {
+    try {
+      // Ensure assignedTo is an array and not empty
+      if (!taskData.assignedTo || !Array.isArray(taskData.assignedTo) || taskData.assignedTo.length === 0) {
+        return rejectWithValue('At least one assignee is required');
+      }
 
-        // Process assignee IDs
-        const processedAssignees = taskData.assignedTo.map(id => {
-          // Ensure ID is a string and trim any whitespace
-          const processedId = id.toString().trim();
-          console.log(`Processing assignee ID: ${id} -> ${processedId}`);
-          return processedId;
-        });
+      // Process assignee IDs
+      const processedAssignees = taskData.assignedTo.map(id => {
+        // Ensure ID is a string and trim any whitespace
+        const processedId = id.toString().trim();
+        console.log(`Processing assignee ID: ${id} -> ${processedId}`);
+        return processedId;
+      });
 
         // Prepare the task data with processed assignees
         const taskPayload = {
@@ -200,19 +188,10 @@ export const fetchTaskById = createAsyncThunk(
         console.log('Sending task data to server:', JSON.stringify(taskPayload, null, 2));
 
         try {
-          const response = await axios.post<{ data: { task: Task } }>(
-            `${API_BASE}/tasks`, 
-            taskPayload,
-            {
-              headers: {
-                Authorization: `Bearer ${localStorage.getItem('token')}`,
-                'Content-Type': 'application/json',
-              },
-            }
-          );
+          const response = await api.post<{ data: { task: Task } }>('/tasks', taskPayload);
           
-          if (!response.data?.data?.task) {
-            console.error('Invalid response format from server:', response.data);
+          if (!response?.data?.data?.task) {
+            console.error('Invalid response format from server:', response?.data);
             throw new Error('Invalid response from server');
           }
           
@@ -242,7 +221,7 @@ export const fetchTaskById = createAsyncThunk(
         return rejectWithValue(errorMessage);
       }
     }
-  );
+);
 
 export const updateTask = createAsyncThunk(
   'tasks/updateTask',
@@ -251,15 +230,9 @@ export const updateTask = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      const response = await axios.patch<{ data: { task: Task } }>(
-        `${API_BASE}/tasks/${id}`,
-        taskData,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-            'Content-Type': 'application/json',
-          },
-        }
+      const response = await api.patch<{ data: { task: Task } }>(
+        `/tasks/${id}`,
+        taskData
       );
       return response.data.data.task;
     } catch (error: any) {
@@ -272,7 +245,7 @@ export const deleteTask = createAsyncThunk(
   'tasks/deleteTask',
   async (id: string, { rejectWithValue }) => {
     try {
-      await axios.delete(`${API_BASE}/tasks/${id}`, {
+      await api.delete(`/tasks/${id}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
