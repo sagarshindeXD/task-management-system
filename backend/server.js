@@ -74,7 +74,20 @@ mongoose.connect(MONGODB_URI, {
 .then(() => console.log('Connected to MongoDB'))
 .catch(err => console.error('MongoDB connection error:', err));
 
-// Routes
+// Root route
+app.get('/', (req, res) => {
+  res.status(200).json({
+    status: 'success',
+    message: 'Welcome to the Task Management System API',
+    documentation: 'https://github.com/sagarshindeXD/task-management-system#readme',
+    endpoints: {
+      tasks: '/api/tasks',
+      users: '/api/users'
+    }
+  });
+});
+
+// API Routes
 app.use('/api/tasks', taskRoutes);
 app.use('/api/users', userRoutes);
 
