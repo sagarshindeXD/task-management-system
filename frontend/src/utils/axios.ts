@@ -8,17 +8,15 @@ console.log('Environment variables:', {
   REACT_APP_API_URL: process.env.REACT_APP_API_URL
 });
 
-// Ensure no trailing slash in the base URL
-const baseURL = process.env.REACT_APP_API_URL 
-  ? `${process.env.REACT_APP_API_URL.trim().replace(/\/+$/, '')}/api`
-  : 'http://localhost:5000/api';
+// Force the correct API URL
+const API_URL = 'https://task-management-system-rimh.onrender.com';
+const baseURL = `${API_URL}/api`;
 
-console.log('Using API base URL:', baseURL); // Debug log
+console.log('Using API base URL:', baseURL);
 
-// Validate the base URL
-if (!baseURL.includes('task-management-system-rimh.onrender.com') && !baseURL.includes('localhost')) {
-  console.warn('Warning: Using unexpected API base URL:', baseURL);
-}
+// For development, you can uncomment this to use localhost
+// const baseURL = 'http://localhost:5000/api';
+// console.log('Using LOCALHOST API URL:', baseURL);
 
 const api = axios.create({
   baseURL,
