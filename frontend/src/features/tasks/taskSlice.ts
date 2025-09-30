@@ -305,14 +305,20 @@ const taskSlice = createSlice({
         state.error = null;
       })
       .addCase(createTask.fulfilled, (state, action: PayloadAction<Task>) => {
-        state.status = 'succeeded';
+        // Add the new task to the beginning of the list
         state.tasks.unshift(action.payload);
         state.total += 1;
         state.error = null;
+        // Reset status to idle after successful creation
+        state.status = 'idle';
       })
       .addCase(createTask.rejected, (state, action) => {
         state.status = 'failed';
         state.error = action.payload as string || 'Failed to create task';
+        // Reset status to idle after a short delay to clear the error state
+        setTimeout(() => {
+          state.status = 'idle';
+        }, 2000);
       })
       // Update Task
       .addCase(updateTask.fulfilled, (state, action: PayloadAction<Task>) => {
