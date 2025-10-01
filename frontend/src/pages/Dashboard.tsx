@@ -427,7 +427,6 @@ const Dashboard: React.FC = () => {
                         }
                       />
                     </ListItem>
-                    <Divider variant="inset" component="li" />
                   </React.Fragment>
                 ))}
               </List>

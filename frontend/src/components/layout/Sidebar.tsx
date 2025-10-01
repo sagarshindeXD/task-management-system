@@ -21,6 +21,9 @@ import {
   Settings as SettingsIcon,
 } from '@mui/icons-material';
 
+// Import the logo
+const logo = '/logo.png';
+
 const drawerWidth = 240;
 
 interface SidebarProps {
@@ -56,8 +59,19 @@ const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onDrawerToggle }) => {
 
   const drawer = (
     <div>
-      <Toolbar>
-        <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 600 }}>
+      <Toolbar sx={{ flexDirection: 'column', py: 2 }}>
+        <Box 
+          component="img" 
+          src={logo} 
+          alt="Logo" 
+          sx={{ 
+            height: 40, 
+            width: 'auto',
+            mb: 1,
+            objectFit: 'contain'
+          }} 
+        />
+        <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 600, mt: 1 }}>
           Task Manager
         </Typography>
       </Toolbar>
