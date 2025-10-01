@@ -45,23 +45,42 @@ const AdminDashboard = () => {
       try {
         setLoading(true);
         const token = localStorage.getItem('token');
-        const response = await fetch(`${API_BASE_URL}/api/users`, {
+        
+        if (!token) {
+          throw new Error('No authentication token found');
+        }
+
+        console.log('Fetching users from:', `${API_BASE_URL}/users`);
+        const response = await fetch(`${API_BASE_URL}/users`, {
           headers: {
             'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
           },
         });
 
         if (!response.ok) {
-          throw new Error('Failed to fetch users');
+          const errorData = await response.text();
+          console.error('Error response:', errorData);
+          throw new Error(`Failed to fetch users: ${response.status} ${response.statusText}`);
         }
 
         const data = await response.json();
-        setUsers(data);
+        console.log('Users data received:', data);
+        
+        // Handle different response formats
+        if (Array.isArray(data)) {
+          setUsers(data);
+        } else if (data.data && Array.isArray(data.data)) {
+          setUsers(data.data);
+        } else {
+          console.warn('Unexpected response format:', data);
+          setUsers([]);
+        }
       } catch (error) {
         console.error('Error fetching users:', error);
         setSnackbar({
           open: true,
-          message: 'Failed to load users',
+          message: error instanceof Error ? error.message : 'Failed to load users',
           severity: 'error',
         });
       } finally {
@@ -80,7 +99,13 @@ const AdminDashboard = () => {
     try {
       setDeleting(true);
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE_URL}/api/users/${userId}`, {
+      
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      console.log('Deleting user:', `${API_BASE_URL}/users/${userId}`);
+      const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -89,9 +114,12 @@ const AdminDashboard = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to delete user');
+        const errorData = await response.text();
+        console.error('Delete error response:', errorData);
+        throw new Error(`Failed to delete user: ${response.status} ${response.statusText}`);
       }
 
+      // Optimistically update the UI
       setUsers(prevUsers => prevUsers.filter(user => user._id !== userId));
       
       setSnackbar({
