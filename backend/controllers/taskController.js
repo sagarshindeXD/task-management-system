@@ -144,7 +144,8 @@ exports.getAllTasks = catchAsync(async (req, res, next) => {
   const limit = req.query.limit * 1 || 10;
   const skip = (page - 1) * limit;
 
-  const total = await Task.countDocuments(JSON.parse(queryStr));
+  // Use the filter object we created earlier
+  const total = await Task.countDocuments(filter);
   query = query.skip(skip).limit(limit);
 
   const tasks = await query;
