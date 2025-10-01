@@ -166,6 +166,13 @@ export const createTask = createAsyncThunk<Task, Partial<Task>, { state: RootSta
   'tasks/createTask',
   async (taskData, { rejectWithValue, getState, dispatch }) => {
     try {
+      const state = getState() as RootState;
+      const userId = state.auth.user?._id;
+      
+      if (!userId) {
+        return rejectWithValue('User not authenticated');
+      }
+
       // Ensure assignedTo is an array and not empty
       if (!taskData.assignedTo || !Array.isArray(taskData.assignedTo) || taskData.assignedTo.length === 0) {
         return rejectWithValue('At least one assignee is required');
@@ -174,15 +181,15 @@ export const createTask = createAsyncThunk<Task, Partial<Task>, { state: RootSta
       // Process assignee IDs
       const processedAssignees = taskData.assignedTo.map(id => {
         // Ensure ID is a string and trim any whitespace
-        const processedId = id.toString().trim();
-        console.log(`Processing assignee ID: ${id} -> ${processedId}`);
-        return processedId;
+        return id.toString().trim();
       });
 
-      // Prepare the task data with processed assignees
+      // Prepare the task data with processed assignees and createdBy
       const taskPayload = {
         ...taskData,
-        assignedTo: processedAssignees
+        assignedTo: processedAssignees,
+        createdBy: userId, // Ensure createdBy is set
+        status: 'todo' // Ensure status is always set
       };
 
       console.log('Sending task data to server:', JSON.stringify(taskPayload, null, 2));
@@ -196,16 +203,21 @@ export const createTask = createAsyncThunk<Task, Partial<Task>, { state: RootSta
       
       console.log('Task created successfully:', response.data.data.task);
       
-      // After successful task creation, refresh the task list
-      const state = getState() as RootState;
+      // After successful task creation, refresh the task lists
+      await Promise.all([
+        dispatch(fetchTasks() as any),
+        dispatch(fetchAssignedTasks() as any)
+      ]);
+      
+      return response.data.data.task;
       
       // Refresh the task list with current filters
       await dispatch(fetchTasks());
       
       // If the current user is assigned to this task, refresh their assigned tasks too
       const currentUserId = state.auth.user?._id;
-      if (currentUserId && processedAssignees.includes(currentUserId)) {
-        await dispatch(fetchAssignedTasks());
+      if (currentUserId && processedAssignees.some(id => id === currentUserId)) {
+        await dispatch(fetchAssignedTasks() as any);
       }
       
       return response.data.data.task;
@@ -295,36 +307,52 @@ const taskSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
-    builder
-      // Fetch Tasks
-      .addCase(fetchTasks.pending, (state) => {
-        state.status = 'loading';
-      })
-      .addCase(fetchTasks.fulfilled, (state, action) => {
-        state.status = 'succeeded';
+    // Fetch all tasks
+    builder.addCase(fetchTasks.pending, (state) => {
+      state.status = 'loading';
+      state.error = null;
+      state.tasks = [];
+      state.total = 0;
+    });
+    builder.addCase(fetchTasks.fulfilled, (state, action: PayloadAction<FetchTasksResponse>) => {
+      state.status = 'succeeded';
+      // Only update tasks if we have a valid response
+      if (action.payload?.data?.tasks) {
         state.tasks = action.payload.data.tasks;
-        state.total = action.payload.total;
-      })
-      .addCase(fetchTasks.rejected, (state, action) => {
-        state.status = 'failed';
-        state.error = action.error.message || 'Failed to fetch tasks';
-      })
-      // Fetch Task By ID
-      .addCase(fetchTaskById.pending, (state) => {
-        state.status = 'loading';
-      })
-      .addCase(fetchTaskById.fulfilled, (state, action: PayloadAction<Task>) => {
-        state.status = 'succeeded';
-        state.currentTask = action.payload;
-      })
-      .addCase(fetchTaskById.rejected, (state, action) => {
-        state.status = 'failed';
-        state.error = action.payload as string;
-      })
-      // Create Task
-      .addCase(createTask.pending, (state) => {
-        state.status = 'loading';
-        state.error = null;
+        state.total = action.payload.total || action.payload.data.tasks.length;
+      } else {
+        console.warn('Unexpected response format:', action.payload);
+      }
+      state.error = null;
+    });
+    builder.addCase(fetchTasks.rejected, (state, action) => {
+      state.status = 'failed';
+      state.error = action.payload as string || 'Failed to fetch tasks';
+      state.tasks = [];
+      state.total = 0;
+    });
+    
+    // Fetch Task By ID
+    builder.addCase(fetchTaskById.pending, (state) => {
+      state.status = 'loading';
+      state.currentTask = null;
+      state.error = null;
+    });
+    builder.addCase(fetchTaskById.fulfilled, (state, action: PayloadAction<Task>) => {
+      state.status = 'succeeded';
+      state.currentTask = action.payload;
+      state.error = null;
+    });
+    builder.addCase(fetchTaskById.rejected, (state, action) => {
+      state.status = 'failed';
+      state.error = action.payload as string || 'Failed to fetch task';
+      state.currentTask = null;
+    });
+    
+    // Create Task
+    builder.addCase(createTask.pending, (state) => {
+      state.status = 'loading';
+      state.error = null;
       })
       .addCase(createTask.fulfilled, (state, action: PayloadAction<Task>) => {
         // Add the new task to the beginning of the list if it's not already there

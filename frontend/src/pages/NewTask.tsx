@@ -5,7 +5,7 @@ import * as Yup from 'yup';
 import { useAppDispatch, useAppSelector } from '../app/hooks';
 import { RootState } from '../store/store';
 import { User } from '../features/users/userSlice';
-import { createTask } from '../features/tasks/taskSlice';
+import { createTask, fetchTasks, fetchAssignedTasks } from '../features/tasks/taskSlice';
 import { fetchUsers } from '../features/users/userSlice';
 import {
   Box,
@@ -124,17 +124,27 @@ const NewTask = () => {
           // Task created successfully
           setStatus({ success: true, error: null });
           
+          // Refresh the task lists
+          await Promise.all([
+            dispatch(fetchTasks() as any),
+            dispatch(fetchAssignedTasks() as any)
+          ]);
+          
           // Show success message briefly before navigating
           setTimeout(() => {
             resetForm();
             setSubmitting(false);
-            // Navigate to tasks list
-            navigate('/tasks', { replace: true });
+            // Navigate to tasks list with a refresh flag
+            navigate('/tasks', { 
+              replace: true,
+              state: { refresh: true }
+            });
           }, 1000);
         } else if (createTask.rejected.match(result)) {
           // Handle rejection
           const errorMsg = (result.payload as string) || 'Failed to create task';
           setFieldError('submit', errorMsg);
+          setStatus({ success: false, error: errorMsg });
           console.error('Task creation failed:', result.error);
         }
       } catch (error: any) {
