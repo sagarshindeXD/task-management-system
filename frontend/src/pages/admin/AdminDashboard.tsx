@@ -47,34 +47,71 @@ const AdminDashboard = () => {
         const token = localStorage.getItem('token');
         
         if (!token) {
-          throw new Error('No authentication token found');
+          throw new Error('No authentication token found. Please log in again.');
         }
 
-        console.log('Fetching users from:', `${API_BASE_URL}/users`);
-        const response = await fetch(`${API_BASE_URL}/users`, {
+        const url = `${API_BASE_URL}/users`;
+        console.log('Fetching users from:', url);
+        
+        // Log request details
+        console.log('Request headers:', {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        });
+
+        const response = await fetch(url, {
+          method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
+            'Accept': 'application/json',
           },
+          credentials: 'include', // Include cookies if needed
         });
 
+        // Log response status and headers
+        console.log('Response status:', response.status, response.statusText);
+        console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
+        // Get response text first to check if it's valid JSON
+        const responseText = await response.text();
+        console.log('Raw response text:', responseText);
+
         if (!response.ok) {
-          const errorData = await response.text();
-          console.error('Error response:', errorData);
-          throw new Error(`Failed to fetch users: ${response.status} ${response.statusText}`);
+          // Try to parse as JSON if possible, otherwise use text
+          let errorMessage = `Failed to fetch users: ${response.status} ${response.statusText}`;
+          try {
+            const errorData = JSON.parse(responseText);
+            errorMessage = errorData.message || errorMessage;
+          } catch (e) {
+            // If not JSON, use the text response
+            if (responseText.startsWith('<!DOCTYPE html>')) {
+              errorMessage = 'Received HTML instead of JSON. Check if the API endpoint is correct.';
+            } else {
+              errorMessage = responseText || errorMessage;
+            }
+          }
+          throw new Error(errorMessage);
         }
 
-        const data = await response.json();
-        console.log('Users data received:', data);
+        // Try to parse as JSON
+        let data;
+        try {
+          data = JSON.parse(responseText);
+          console.log('Parsed response data:', data);
+        } catch (e) {
+          console.error('Failed to parse response as JSON:', e);
+          throw new Error('Invalid JSON response from server');
+        }
         
         // Handle different response formats
         if (Array.isArray(data)) {
           setUsers(data);
-        } else if (data.data && Array.isArray(data.data)) {
+        } else if (data && typeof data === 'object' && Array.isArray(data.data)) {
           setUsers(data.data);
         } else {
           console.warn('Unexpected response format:', data);
-          setUsers([]);
+          throw new Error('Unexpected response format from server');
         }
       } catch (error) {
         console.error('Error fetching users:', error);
