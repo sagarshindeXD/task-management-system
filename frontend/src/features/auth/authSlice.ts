@@ -37,6 +37,7 @@ export type AuthStatus = 'idle' | 'loading' | 'succeeded' | 'failed';
 
 interface AuthState {
   user: User | null;
+  users: User[];
   token: string | null;
   isAuthenticated: boolean;
   status: AuthStatus;
@@ -45,6 +46,7 @@ interface AuthState {
 
 const initialState: AuthState = {
   user: null,
+  users: [],
   token: localStorage.getItem('token'),
   isAuthenticated: false,
   status: 'idle',
@@ -227,6 +229,33 @@ const authSlice = createSlice({
         // Don't clear the token or isAuthenticated here
         // Just set the error message
         state.error = action.payload as string;
+      })
+      // Fetch Users
+      .addCase(fetchUsers.pending, (state) => {
+        state.status = 'loading';
+      })
+      .addCase(fetchUsers.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.users = action.payload;
+      })
+      .addCase(fetchUsers.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload as string;
+      })
+      // Create User
+      .addCase(createUser.fulfilled, (state, action) => {
+        state.users.push(action.payload);
+      })
+      // Update User
+      .addCase(updateUser.fulfilled, (state, action) => {
+        const index = state.users.findIndex(user => user._id === action.payload._id);
+        if (index !== -1) {
+          state.users[index] = action.payload;
+        }
+      })
+      // Delete User
+      .addCase(deleteUser.fulfilled, (state, action) => {
+        state.users = state.users.filter(user => user._id !== action.payload);
       });
   },
 });
@@ -261,6 +290,55 @@ export const changePassword = createAsyncThunk(
       return rejectWithValue(
         error.response?.data?.message || 'Failed to change password'
       );
+    }
+  }
+);
+
+// User management actions
+export const fetchUsers = createAsyncThunk<User[], void, { rejectValue: string }>(
+  'auth/fetchUsers',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await api.get<{ data: { users: User[] } }>('/users');
+      return response.data.data.users;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch users');
+    }
+  }
+);
+
+export const createUser = createAsyncThunk<User, { name: string; email: string; password: string; role: string }, { rejectValue: string }>(
+  'auth/createUser',
+  async (userData, { rejectWithValue }) => {
+    try {
+      const response = await api.post<{ data: { user: User } }>('/users', userData);
+      return response.data.data.user;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to create user');
+    }
+  }
+);
+
+export const updateUser = createAsyncThunk<User, { id: string; userData: Partial<User> }, { rejectValue: string }>(
+  'auth/updateUser',
+  async ({ id, userData }, { rejectWithValue }) => {
+    try {
+      const response = await api.patch<{ data: { user: User } }>(`/users/${id}`, userData);
+      return response.data.data.user;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to update user');
+    }
+  }
+);
+
+export const deleteUser = createAsyncThunk<string, string, { rejectValue: string }>(
+  'auth/deleteUser',
+  async (userId, { rejectWithValue }) => {
+    try {
+      await api.delete(`/users/${userId}`);
+      return userId;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to delete user');
     }
   }
 );

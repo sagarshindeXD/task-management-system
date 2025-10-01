@@ -1,15 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
-import { Box, CircularProgress, Typography } from '@mui/material';
-import { CssBaseline } from '@mui/material';
+import { CssBaseline, Box } from '@mui/material';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 
 import { store } from './store/store';
-import { useAppDispatch, useAppSelector } from './hooks/reduxHooks';
-import { getMe } from './features/auth/authSlice';
+import { AuthProvider, useAuth } from './context/AuthContext';
 
 // Layouts
 import MainLayout from './components/layout/MainLayout';
@@ -92,27 +90,10 @@ const theme = createTheme({
 
 // Protected Route Component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated, status, token } = useAppSelector((state) => state.auth);
-  const [isLoading, setIsLoading] = useState(true);
-  const dispatch = useAppDispatch();
+  const { user, loading } = useAuth();
+  const token = localStorage.getItem('token');
 
-  // Check if we need to verify the user's session
-  useEffect(() => {
-    if (token && !isAuthenticated && status !== 'loading') {
-      // If we have a token but aren't authenticated, try to get the user data
-      dispatch(getMe())
-        .then(() => setIsLoading(false))
-        .catch(() => setIsLoading(false));
-    } else {
-      const timer = setTimeout(() => {
-        setIsLoading(false);
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [token, isAuthenticated, status, dispatch]);
-
-  // If we're still loading the auth state, show a loading indicator
-  if (status === 'loading' || isLoading) {
+  if (loading) {
     return (
       <Box 
         display="flex" 
@@ -120,31 +101,14 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
         alignItems="center" 
         minHeight="100vh"
       >
-        <CircularProgress />
+        <Box>Loading...</Box>
       </Box>
     );
   }
 
   // If not authenticated and no token, redirect to login
-  if (!isAuthenticated && !token) {
+  if (!user && !token) {
     return <Navigate to="/login" state={{ from: window.location.pathname }} replace />;
-  }
-
-  // If we have a token but not authenticated yet, show a loading state
-  if (token && !isAuthenticated) {
-    return (
-      <Box 
-        display="flex" 
-        justifyContent="center" 
-        alignItems="center" 
-        minHeight="100vh"
-        flexDirection="column"
-        gap={2}
-      >
-        <CircularProgress />
-        <Typography>Verifying session...</Typography>
-      </Box>
-    );
   }
 
   return <>{children}</>;
@@ -152,9 +116,9 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
 // Public Route Component
 const PublicRoute = ({ children }: { children: React.ReactNode }) => {
-  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
-  
-  if (isAuthenticated) {
+  const { user } = useAuth();
+
+  if (user) {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -163,110 +127,81 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
 
 // Main App Component
 const AppContent = () => {
-  const dispatch = useAppDispatch();
-  const { status, token, isAuthenticated } = useAppSelector((state) => state.auth);
-  const [initialized, setInitialized] = useState(false);
-
-  // Check if user is logged in on initial load
-  useEffect(() => {
-    const initializeAuth = async () => {
-      const storedToken = localStorage.getItem('token');
-      if (storedToken && !isAuthenticated) {
-        try {
-          await dispatch(getMe()).unwrap();
-        } catch (error) {
-          console.error('Failed to initialize auth:', error);
-          // Don't clear the token here, let ProtectedRoute handle it
-        }
-      }
-      setInitialized(true);
-    };
-
-    initializeAuth();
-  }, [dispatch, isAuthenticated]);
-
-  // Show loading state only during initial app load
-  if (!initialized) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
-        <CircularProgress />
-      </Box>
-    );
-  }
-
   return (
-    <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <Router>
-        <Routes>
-          {/* Public Routes */}
-          <Route
-            path="/login"
-            element={
-              <PublicRoute>
-                <AuthLayout>
-                  <Login />
-                </AuthLayout>
-              </PublicRoute>
-            }
-          />
-          <Route
-            path="/register"
-            element={
-              <PublicRoute>
-                <AuthLayout>
-                  <Register />
-                </AuthLayout>
-              </PublicRoute>
-            }
-          />
+    <Router>
+      <Routes>
+        {/* Public Routes */}
+        <Route
+          path="/login"
+          element={
+            <PublicRoute>
+              <AuthLayout>
+                <Login />
+              </AuthLayout>
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/register"
+          element={
+            <PublicRoute>
+              <AuthLayout>
+                <Register />
+              </AuthLayout>
+            </PublicRoute>
+          }
+        />
 
-          {/* Protected Routes */}
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <MainLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<Navigate to="/dashboard" replace />} />
-            <Route path="dashboard" element={<Dashboard />} />
-            <Route path="tasks" element={<Tasks />} />
-            <Route path="tasks/new" element={<NewTask />} />
-            <Route path="tasks/:id" element={<TaskDetail />} />
-            <Route path="profile" element={<Profile />} />
-            <Route path="settings" element={<Settings />} />
-          </Route>
+        {/* Protected Routes */}
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <MainLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="tasks" element={<Tasks />} />
+          <Route path="tasks/new" element={<NewTask />} />
+          <Route path="tasks/:id" element={<TaskDetail />} />
+          <Route path="profile" element={<Profile />} />
+          <Route path="settings" element={<Settings />} />
+        </Route>
 
-          {/* Admin Routes */}
-          <Route
-            path="/admin"
-            element={
-              <ProtectedRoute>
-                <AdminLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<AdminDashboard />} />
-            <Route path="users" element={<UserManagement />} />
-            <Route path="clients" element={<ClientManagement />} />
-          </Route>
+        {/* Admin Routes */}
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute>
+              <AdminLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<AdminDashboard />} />
+          <Route path="users" element={<UserManagement />} />
+          <Route path="clients" element={<ClientManagement />} />
+        </Route>
 
-          {/* 404 Route */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </Router>
-    </LocalizationProvider>
+        {/* 404 Route */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </Router>
   );
 };
 
-// App Wrapper with Redux and Theme Providers
+// App Wrapper with Redux, Auth, and Theme Providers
 const App = () => {
   return (
     <Provider store={store}>
       <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <AppContent />
+        <LocalizationProvider dateAdapter={AdapterDateFns}>
+          <CssBaseline />
+          <AuthProvider>
+            <AppContent />
+          </AuthProvider>
+        </LocalizationProvider>
       </ThemeProvider>
     </Provider>
   );
