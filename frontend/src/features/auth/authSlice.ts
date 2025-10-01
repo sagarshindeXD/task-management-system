@@ -79,17 +79,40 @@ export const register = createAsyncThunk<
 
 export const login = createAsyncThunk<AuthResponse, LoginCredentials, { rejectValue: string }>(
   'auth/login',
-  async ({ email, password }, { rejectWithValue }) => {
+  async ({ email, password }, { rejectWithValue, dispatch }) => {
     try {
       console.log('Making login request to login endpoint');
-      const response = await api.post<AuthResponse>('/users/login', {
+      // First, make the login request
+      const loginResponse = await api.post<AuthResponse>('/users/login', {
         email,
         password,
       });
-      return response.data;
+      
+      // Save the token from login response
+      const { token } = loginResponse.data;
+      localStorage.setItem('token', token);
+      
+      // Then fetch the user's details
+      try {
+        const meResponse = await api.get<MeApiResponse>('/users/me');
+        const userData = meResponse.data?.data?.user;
+        
+        if (userData) {
+          // Return the combined data
+          return {
+            ...loginResponse.data,
+            user: userData
+          };
+        }
+      } catch (meError) {
+        console.warn('Failed to fetch user details, using basic user info from login', meError);
+        // If fetching user details fails, continue with the basic user info from login
+      }
+      
+      return loginResponse.data;
     } catch (error: any) {
       const message = error.response?.data?.message || 'Login failed';
-      return rejectWithValue(message) as any; // Type assertion needed for Redux Toolkit's typing
+      return rejectWithValue(message) as any;
     }
   }
 );
@@ -209,7 +232,7 @@ const authSlice = createSlice({
         state.user = action.payload.user;
         state.token = action.payload.token;
         state.isAuthenticated = true;
-        localStorage.setItem('token', action.payload.token);
+        // Token is already saved in the thunk
       })
       .addCase(login.rejected, (state, action) => {
         state.status = 'failed';

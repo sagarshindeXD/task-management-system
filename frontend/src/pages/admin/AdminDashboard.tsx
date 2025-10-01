@@ -108,10 +108,14 @@ const AdminDashboard = () => {
           throw new Error('Invalid JSON response from server');
         }
         
-        // Handle different response formats
-        if (Array.isArray(data)) {
+        // Handle the response format: { status: 'success', results: number, data: { users: User[] } }
+        if (data && data.status === 'success' && data.data && Array.isArray(data.data.users)) {
+          setUsers(data.data.users);
+        } else if (Array.isArray(data)) {
+          // Fallback: If the response is directly an array
           setUsers(data);
-        } else if (data && typeof data === 'object' && Array.isArray(data.data)) {
+        } else if (data && data.data && Array.isArray(data.data)) {
+          // Fallback: If the response is { data: User[] }
           setUsers(data.data);
         } else {
           console.warn('Unexpected response format:', data);
