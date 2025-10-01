@@ -61,19 +61,29 @@ const Register: React.FC = () => {
     validationSchema,
     onSubmit: async (values, { setSubmitting, setFieldError }) => {
       try {
-        await dispatch(register({
+        console.log('Submitting registration form with values:', values);
+        const resultAction = await dispatch(register({
           name: values.name,
           email: values.email,
           password: values.password
-        })).unwrap();
-        // Redirect to login page after successful registration
-        navigate('/login');
-      } catch (error: any) {
-        if (error.includes('email')) {
-          setFieldError('email', error);
-        } else {
-          setFieldError('email', 'Registration failed. Please try again.');
+        }));
+        
+        if (register.fulfilled.match(resultAction)) {
+          console.log('Registration successful, redirecting to login');
+          // Show success message and redirect to login
+          navigate('/login', { state: { from: 'registration' } });
+        } else if (register.rejected.match(resultAction)) {
+          console.error('Registration failed:', resultAction.payload);
+          const errorMessage = resultAction.payload || 'Registration failed. Please try again.';
+          if (errorMessage.toLowerCase().includes('email')) {
+            setFieldError('email', errorMessage);
+          } else {
+            setFieldError('email', errorMessage);
+          }
         }
+      } catch (error) {
+        console.error('Unexpected error during registration:', error);
+        setFieldError('email', 'An unexpected error occurred. Please try again.');
       } finally {
         setSubmitting(false);
       }
@@ -96,6 +106,7 @@ const Register: React.FC = () => {
     <Box
       component="form"
       noValidate
+      onSubmit={formik.handleSubmit}
       sx={{
         width: '100%',
         display: 'flex',
@@ -218,7 +229,9 @@ const Register: React.FC = () => {
       <Button
         type="submit"
         fullWidth
-        disabled={status === 'loading'}
+        variant="contained"
+        color="primary"
+        disabled={formik.isSubmitting || status === 'loading'}
         sx={{
           mt: 3,
           mb: 2,
@@ -228,7 +241,7 @@ const Register: React.FC = () => {
           fontSize: '1rem',
         }}
       >
-        {status === 'loading' ? (
+        {formik.isSubmitting || status === 'loading' ? (
           <CircularProgress size={24} color="inherit" />
         ) : (
           'Sign Up'
