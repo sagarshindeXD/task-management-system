@@ -182,14 +182,6 @@ const Dashboard: React.FC = () => {
                 <CompletedIcon />
               </Avatar>
             </Box>
-            <Box sx={{ mt: 2 }}>
-              <LinearProgress 
-                variant="determinate" 
-                value={(completedTasks.length / (tasks.length || 1)) * 100} 
-                sx={{ height: 8, borderRadius: 4 }}
-                color="success"
-              />
-            </Box>
           </CardContent>
         </Card>
       </Box>

@@ -49,6 +49,11 @@ const taskSchema = new mongoose.Schema({
     ref: 'User',
     required: [true, 'At least one assignee is required']
   }],
+  client: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Client',
+    required: [true, 'Please select a client']
+  },
   labels: [{
     type: String,
     trim: true

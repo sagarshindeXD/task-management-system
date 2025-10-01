@@ -24,6 +24,10 @@ import NewTask from './pages/NewTask';
 import TaskDetail from './pages/TaskDetail';
 import Profile from './pages/Profile';
 import Settings from './pages/Settings';
+import AdminLayout from './components/layout/AdminLayout';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import UserManagement from './pages/admin/UserManagement';
+import ClientManagement from './pages/admin/ClientManagement';
 import NotFound from './pages/NotFound';
 
 // Theme

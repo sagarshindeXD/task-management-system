@@ -9,6 +9,17 @@ export interface User {
   email: string;
 }
 
+export interface Client {
+  _id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  isActive: boolean;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Task {
   _id: string;
   title: string;
@@ -18,6 +29,7 @@ export interface Task {
   dueDate?: string;
   createdBy: User | string;  // Can be either User object or string ID
   assignedTo: string[];
+  client: string | Client;   // Can be either Client object or string ID
   labels: string[];
   createdAt: string;
   updatedAt: string;

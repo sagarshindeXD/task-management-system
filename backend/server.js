@@ -7,6 +7,7 @@ const morgan = require('morgan');
 // Import routes
 const taskRoutes = require('./routes/tasks');
 const userRoutes = require('./routes/users');
+const clientRoutes = require('./routes/clients');
 
 // Initialize express
 const app = express();
@@ -93,6 +94,7 @@ app.get('/', (req, res) => {
 // API Routes
 app.use('/api/tasks', taskRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/clients', clientRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

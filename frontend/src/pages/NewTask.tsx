@@ -7,6 +7,7 @@ import { RootState } from '../store/store';
 import { User } from '../features/users/userSlice';
 import { createTask, fetchTasks, fetchAssignedTasks } from '../features/tasks/taskSlice';
 import { fetchUsers } from '../features/users/userSlice';
+import { fetchClients, selectAllClients } from '../features/clients/clientSlice';
 import {
   Box,
   Button,
@@ -37,6 +38,8 @@ const validationSchema = Yup.object({
     .required('Due date is required'),
   assignee: Yup.string()
     .required('Please select an assignee'),
+  client: Yup.string()
+    .required('Please select a client'),
 });
 interface TaskFormValues {
   title: string;
@@ -44,6 +47,7 @@ interface TaskFormValues {
   priority: 'low' | 'medium' | 'high';
   dueDate: string;
   assignee: string;
+  client: string;
   submit?: string;
 }
 const NewTask = () => {
@@ -52,6 +56,8 @@ const NewTask = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [status, setStatus] = useState<{ success: boolean; error: string | null }>({ success: false, error: null });
   const { users = [], status: userStatus } = useAppSelector((state: RootState) => state.users);
+  const clients = useAppSelector(selectAllClients);
+  const clientsStatus = useAppSelector((state: RootState) => state.clients.status);
   const taskStatus = useAppSelector((state: RootState) => state.tasks.status);
   const taskError = useAppSelector((state: RootState) => state.tasks.error);
   
@@ -59,14 +65,19 @@ const NewTask = () => {
   useEffect(() => {
     console.log('Users in store:', users);
     console.log('User status:', userStatus);
-  }, [users, userStatus]);
+    console.log('Clients in store:', clients);
+    console.log('Clients status:', clientsStatus);
+  }, [users, userStatus, clients, clientsStatus]);
   
-  // Fetch users when component mounts
+  // Fetch users and clients when component mounts
   useEffect(() => {
     if (userStatus === 'idle') {
       dispatch(fetchUsers());
     }
-  }, [dispatch, userStatus]);
+    if (clientsStatus === 'idle') {
+      dispatch(fetchClients());
+    }
+  }, [dispatch, userStatus, clientsStatus]);
 
   const formik = useFormik<TaskFormValues>({
     initialValues: {
@@ -75,6 +86,7 @@ const NewTask = () => {
       priority: 'medium',
       dueDate: '',
       assignee: '',
+      client: '',
     },
     validationSchema: validationSchema,
     validateOnChange: true,
@@ -114,6 +126,7 @@ const NewTask = () => {
           status: 'todo' as const,
           dueDate: values.dueDate ? new Date(values.dueDate).toISOString() : undefined,
           assignedTo: [assigneeId],
+          client: values.client,
         };
         
         console.log('Sending task data:', taskData);
@@ -210,6 +223,35 @@ const NewTask = () => {
             helperText={formik.touched.description && formik.errors.description}
             margin="normal"
           />
+
+          <FormControl 
+            fullWidth 
+            margin="normal"
+            error={formik.touched.client && Boolean(formik.errors.client)}
+          >
+            <InputLabel id="client-label">Client</InputLabel>
+            <Select
+              labelId="client-label"
+              id="client"
+              name="client"
+              value={formik.values.client}
+              label="Client"
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
+            >
+              <MenuItem value="">
+                <em>Select a client</em>
+              </MenuItem>
+              {clients.map((client) => (
+                <MenuItem key={client._id} value={client._id}>
+                  {client.name}
+                </MenuItem>
+              ))}
+            </Select>
+            {formik.touched.client && formik.errors.client && (
+              <FormHelperText>{formik.errors.client}</FormHelperText>
+            )}
+          </FormControl>
           
           <FormControl 
             fullWidth 
