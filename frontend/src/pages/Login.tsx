@@ -83,8 +83,21 @@ const Login: React.FC = () => {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
+        maxWidth: 400,
+        mx: 'auto',
+        p: 3,
       }}
     >
+      <Box 
+        component="img"
+        src="/logo.png" 
+        alt="Task Management System" 
+        sx={{ 
+          width: 120, 
+          height: 'auto',
+          mb: 4,
+        }} 
+      />
       {error && (
         <Alert severity="error" sx={{ width: '100%', mb: 2 }}>
           {error}
