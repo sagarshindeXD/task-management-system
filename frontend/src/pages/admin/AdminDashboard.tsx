@@ -464,5 +464,6 @@ const AdminDashboard = () => {
       </Snackbar>
     </Box>
   );
+};
 
 export default AdminDashboard;
