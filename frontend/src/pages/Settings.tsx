@@ -29,10 +29,13 @@ import {
   Save as SaveIcon
 } from '@mui/icons-material';
 import { useAppSelector } from '../hooks/reduxHooks';
+import { useNavigate } from 'react-router-dom';
 
 const Settings: React.FC = () => {
   const theme = useTheme();
-  const user = useAppSelector((state) => state.auth.user);
+  const navigate = useNavigate();
+  const { user } = useAppSelector((state) => state.auth);
+  const isAdmin = user?.role === 'admin';
   const [settings, setSettings] = useState({
     emailNotifications: true,
     pushNotifications: false,
@@ -138,6 +141,31 @@ const Settings: React.FC = () => {
           </List>
         </CardContent>
       </Card>
+
+      {/* Admin Panel Section - Only visible to admins */}
+      {isAdmin && (
+        <Card sx={{ mb: 4 }}>
+          <CardHeader
+            title="Admin Panel"
+            avatar={<SecurityIcon color="primary" />}
+          />
+          <CardContent>
+            <Typography variant="body1" paragraph>
+              Access administrative functions and manage the application.
+            </Typography>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={() => navigate('/admin')}
+              startIcon={<SecurityIcon />}
+              fullWidth
+              sx={{ maxWidth: 300 }}
+            >
+              Open Admin Panel
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader

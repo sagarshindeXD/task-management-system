@@ -238,6 +238,20 @@ const AppContent = () => {
             <Route path="settings" element={<Settings />} />
           </Route>
 
+          {/* Admin Routes */}
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute>
+                <AdminLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<AdminDashboard />} />
+            <Route path="users" element={<UserManagement />} />
+            <Route path="clients" element={<ClientManagement />} />
+          </Route>
+
           {/* 404 Route */}
           <Route path="*" element={<NotFound />} />
         </Routes>
