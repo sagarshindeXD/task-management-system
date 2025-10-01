@@ -26,7 +26,7 @@ type User = {
   createdAt?: string;
 };
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 const AdminDashboard = () => {
   const { user: currentUser } = useAuth();
@@ -104,7 +104,7 @@ const AdminDashboard = () => {
         throw new Error('No authentication token found');
       }
 
-      console.log('Deleting user:', `${API_BASE_URL}/users/${userId}`);
+console.log('Deleting user:', `${API_BASE_URL}/users/${userId}`);
       const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
         method: 'DELETE',
         headers: {
