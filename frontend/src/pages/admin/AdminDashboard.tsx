@@ -26,7 +26,11 @@ type User = {
   createdAt?: string;
 };
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+// Use Render backend URL in production, fallback to localhost in development
+const isProduction = process.env.NODE_ENV === 'production';
+const API_BASE_URL = isProduction 
+  ? 'https://task-management-system-rimh.onrender.com/api' 
+  : 'http://localhost:5000/api';
 
 const AdminDashboard = () => {
   const { user: currentUser } = useAuth();
