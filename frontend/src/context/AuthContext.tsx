@@ -1,5 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
+// Define API base URL
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://task-management-system-rimh.onrender.com/api';
+console.log('Using API base URL:', API_BASE_URL);
+
 type User = {
   _id: string;
   name: string;
@@ -25,12 +29,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const token = localStorage.getItem('token');
         if (token) {
-          const response = await fetch('http://localhost:5000/api/auth/me', {
+          const response = await fetch(`${API_BASE_URL}/users/me`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
           if (response.ok) {
-            const userData = await response.json();
-            setUser(userData);
+            const data = await response.json();
+          // Handle the response format: { status: 'success', data: { user: User } }
+          const userData = data.data?.user || data;
+          setUser(userData);
           }
         }
       } catch (error) {
