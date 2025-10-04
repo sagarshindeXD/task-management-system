@@ -1,4 +1,4 @@
-import { API_BASE_URL } from '@config/constants';
+import { API_BASE_URL } from '../config';
 
 export interface Client {
   _id?: string;
