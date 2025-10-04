@@ -1,4 +1,4 @@
-import { API_BASE_URL } from '../config';
+import { API_BASE_URL } from '@config/constants';
 
 export interface Client {
   _id?: string;
@@ -10,7 +10,7 @@ export interface Client {
 }
 
 export const fetchClients = async (token: string): Promise<Client[]> => {
-  const response = await fetch(`${API_BASE_URL}/admin/clients`, {
+  const response = await fetch(`${API_BASE_URL}/clients`, {
     headers: { 
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -26,7 +26,7 @@ export const fetchClients = async (token: string): Promise<Client[]> => {
 };
 
 export const createClient = async (clientData: Omit<Client, '_id'>, token: string): Promise<Client> => {
-  const response = await fetch(`${API_BASE_URL}/admin/clients`, {
+  const response = await fetch(`${API_BASE_URL}/clients`, {
     method: 'POST',
     headers: { 
       'Authorization': `Bearer ${token}`,
@@ -44,7 +44,7 @@ export const createClient = async (clientData: Omit<Client, '_id'>, token: strin
 };
 
 export const updateClient = async (id: string, clientData: Partial<Client>, token: string): Promise<Client> => {
-  const response = await fetch(`${API_BASE_URL}/admin/clients/${id}`, {
+  const response = await fetch(`${API_BASE_URL}/clients/${id}`, {
     method: 'PUT',
     headers: { 
       'Authorization': `Bearer ${token}`,
@@ -62,7 +62,7 @@ export const updateClient = async (id: string, clientData: Partial<Client>, toke
 };
 
 export const deleteClient = async (id: string, token: string): Promise<void> => {
-  const response = await fetch(`${API_BASE_URL}/admin/clients/${id}`, {
+  const response = await fetch(`${API_BASE_URL}/clients/${id}`, {
     method: 'DELETE',
     headers: { 
       'Authorization': `Bearer ${token}`,
@@ -76,7 +76,7 @@ export const deleteClient = async (id: string, token: string): Promise<void> => 
 };
 
 export const updateClientStatus = async (id: string, isActive: boolean, token: string): Promise<Client> => {
-  const response = await fetch(`${API_BASE_URL}/admin/clients/${id}/status`, {
+  const response = await fetch(`${API_BASE_URL}/clients/${id}`, {
     method: 'PATCH',
     headers: { 
       'Authorization': `Bearer ${token}`,

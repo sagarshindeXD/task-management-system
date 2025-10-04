@@ -1,10 +1,5 @@
-// Determine if we're in production or development
-const isProduction = process.env.NODE_ENV === 'production';
-
 // API configuration
-export const API_BASE_URL = isProduction
-  ? 'https://your-production-api-url.com/api' // Replace with your production API URL
-  : 'http://localhost:5000/api'; // Default to local development server
+export const API_BASE_URL = 'http://localhost:5000/api'; // Backend API URL
 
 // Auth configuration
 export const AUTH_CONFIG = {
