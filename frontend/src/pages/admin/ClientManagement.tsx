@@ -23,22 +23,27 @@ import {
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { useAppDispatch, useAppSelector } from '../../hooks/reduxHooks';
 import { RootState } from '../../store/store';
+import {
+  fetchClients,
+  createClient,
+  updateClient,
+  deleteClient as deleteClientApi,
+  updateClientStatus,
+  Client
+} from '../../services/clientService';
 
-interface Client {
-  _id: string;
-  name: string;
-  email?: string;
-  phone?: string;
-  isActive: boolean;
-  createdAt: string;
-}
 
 const ClientManagement = () => {
+  // State management
   const [clients, setClients] = useState<Client[]>([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [currentClient, setCurrentClient] = useState<Client | null>(null);
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [snackbar, setSnackbar] = useState({ 
+    open: false, 
+    message: '', 
+    severity: 'success' as 'success' | 'error' | 'warning' | 'info' 
+  });
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -47,37 +52,119 @@ const ClientManagement = () => {
 
   const { token } = useAppSelector((state: RootState) => state.auth);
 
-  // TODO: Replace with actual API call to fetch clients
+  // Fetch clients on component mount and when token changes
   useEffect(() => {
-    const fetchClients = async () => {
+    const loadClients = async () => {
+      if (!token) return;
+      
       try {
-        // const response = await fetch('/api/admin/clients', {
-        //   headers: { Authorization: `Bearer ${token}` },
-        // });
-        // const data = await response.json();
-        // setClients(data);
-        
-        // Mock data for now
-        setClients([
-          { _id: '1', name: 'Client A', email: 'clientA@example.com', phone: '+1234567890', isActive: true, createdAt: new Date().toISOString() },
-          { _id: '2', name: 'Client B', email: 'clientB@example.com', phone: '+1987654321', isActive: false, createdAt: new Date().toISOString() },
-        ]);
+        const clientsData = await fetchClients(token);
+        setClients(clientsData);
       } catch (error) {
         console.error('Error fetching clients:', error);
-        setSnackbar({ open: true, message: 'Failed to fetch clients', severity: 'error' });
+        setSnackbar({
+          open: true,
+          message: 'Failed to load clients',
+          severity: 'error'
+        });
       }
     };
 
-    fetchClients();
+    loadClients();
   }, [token]);
 
+  // Handle form input changes
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  // Handle form submission
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token) return;
+
+    try {
+      if (currentClient?._id) {
+        // Update existing client
+        await updateClient(currentClient._id, formData, token);
+        setSnackbar({
+          open: true,
+          message: 'Client updated successfully',
+          severity: 'success'
+        });
+      } else {
+        // Create new client
+        await createClient(formData, token);
+        setSnackbar({
+          open: true,
+          message: 'Client created successfully',
+          severity: 'success'
+        });
+      }
+
+      // Refresh clients list
+      const clientsData = await fetchClients(token);
+      setClients(clientsData);
+      handleCloseDialog();
+    } catch (error) {
+      console.error('Error saving client:', error);
+      setSnackbar({
+        open: true,
+        message: error instanceof Error ? error.message : 'Failed to save client',
+        severity: 'error'
+      });
+    }
+  };
+
+  // Handle client deletion
+  const handleDeleteClient = async () => {
+    if (!currentClient?._id) {
+      setSnackbar({ 
+        open: true, 
+        message: 'No client selected for deletion', 
+        severity: 'error' 
+      });
+      return;
+    }
+
+    if (!token) {
+      setSnackbar({ 
+        open: true, 
+        message: 'Authentication token is missing', 
+        severity: 'error' 
+      });
+      return;
+    }
+
+    try {
+      await deleteClientApi(currentClient._id, token);
+      setSnackbar({ 
+        open: true, 
+        message: 'Client deleted successfully', 
+        severity: 'success' 
+      });
+      // Refresh the clients list
+      const clients = await fetchClients(token);
+      setClients(clients);
+      setOpenDeleteDialog(false);
+      setCurrentClient(null);
+    } catch (error) {
+      setSnackbar({ 
+        open: true, 
+        message: error instanceof Error ? error.message : 'Failed to delete client', 
+        severity: 'error' 
+      });
+    }
+  };
+
+  // Dialog handlers
   const handleOpenAddDialog = () => {
     setCurrentClient(null);
-    setFormData({
-      name: '',
-      email: '',
-      phone: '',
-    });
+    setFormData({ name: '', email: '', phone: '' });
     setOpenDialog(true);
   };
 
@@ -86,44 +173,15 @@ const ClientManagement = () => {
     setFormData({
       name: client.name,
       email: client.email || '',
-      phone: client.phone || '',
+      phone: client.phone || ''
     });
     setOpenDialog(true);
   };
 
   const handleCloseDialog = () => {
     setOpenDialog(false);
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      // TODO: Implement API call to create/update client
-      if (currentClient) {
-        // Update client
-        // await updateClient(currentClient._id, formData, token);
-        setSnackbar({ open: true, message: 'Client updated successfully', severity: 'success' });
-      } else {
-        // Create client
-        // await createClient(formData, token);
-        setSnackbar({ open: true, message: 'Client created successfully', severity: 'success' });
-      }
-      setOpenDialog(false);
-      // Refresh clients list
-      // const response = await fetchClients();
-      // setClients(response.data);
-    } catch (error) {
-      console.error('Error saving client:', error);
-      setSnackbar({ open: true, message: 'Failed to save client', severity: 'error' });
-    }
+    setCurrentClient(null);
+    setFormData({ name: '', email: '', phone: '' });
   };
 
   const handleOpenDeleteDialog = (client: Client) => {
@@ -133,47 +191,42 @@ const ClientManagement = () => {
 
   const handleCloseDeleteDialog = () => {
     setOpenDeleteDialog(false);
-  };
-
-  const handleDeleteClient = async () => {
-    if (!currentClient) return;
-    
-    try {
-      // TODO: Implement API call to delete client
-      // await deleteClient(currentClient._id, token);
-      setSnackbar({ open: true, message: 'Client deleted successfully', severity: 'success' });
-      setOpenDeleteDialog(false);
-      // Refresh clients list
-      // const response = await fetchClients();
-      // setClients(response.data);
-    } catch (error) {
-      console.error('Error deleting client:', error);
-      setSnackbar({ open: true, message: 'Failed to delete client', severity: 'error' });
-    }
-  };
-
-  const toggleClientStatus = async (client: Client) => {
-    try {
-      // TODO: Implement API call to toggle client status
-      // await updateClientStatus(client._id, !client.isActive, token);
-      setSnackbar({ 
-        open: true, 
-        message: `Client ${!client.isActive ? 'activated' : 'deactivated'} successfully`, 
-        severity: 'success' 
-      });
-      // Refresh clients list
-      // const response = await fetchClients();
-      // setClients(response.data);
-    } catch (error) {
-      console.error('Error updating client status:', error);
-      setSnackbar({ open: true, message: 'Failed to update client status', severity: 'error' });
-    }
+    setCurrentClient(null);
   };
 
   const handleCloseSnackbar = () => {
     setSnackbar(prev => ({ ...prev, open: false }));
   };
 
+  // Toggle client active status
+  const handleToggleStatus = async (client: Client) => {
+    if (!client._id || !token) return;
+    
+    try {
+      const updatedClient = await updateClientStatus(client._id, !client.isActive, token);
+      setSnackbar({
+        open: true,
+        message: `Client ${updatedClient.isActive ? 'activated' : 'deactivated'} successfully`,
+        severity: 'success'
+      });
+      
+      // Update the client in the list
+      setClients(prevClients => 
+        prevClients.map(c => 
+          c._id === client._id ? { ...c, isActive: updatedClient.isActive } : c
+        )
+      );
+    } catch (error) {
+      console.error('Error toggling client status:', error);
+      setSnackbar({
+        open: true,
+        message: 'Failed to update client status',
+        severity: 'error'
+      });
+    }
+  };
+
+  // Rest of your component JSX...
   return (
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
@@ -215,7 +268,7 @@ const ClientManagement = () => {
                     size="small"
                   />
                 </TableCell>
-                <TableCell>{new Date(client.createdAt).toLocaleDateString()}</TableCell>
+                <TableCell>{client.createdAt ? new Date(client.createdAt).toLocaleDateString() : '-'}</TableCell>
                 <TableCell>
                   <IconButton
                     color="primary"
@@ -226,7 +279,7 @@ const ClientManagement = () => {
                   </IconButton>
                   <IconButton
                     color={client.isActive ? 'error' : 'success'}
-                    onClick={() => toggleClientStatus(client)}
+                    onClick={() => handleToggleStatus(client)}
                     size="small"
                   >
                     {client.isActive ? <DeleteIcon /> : <AddIcon />}
