@@ -2,22 +2,13 @@ import axios from 'axios';
 import { store } from '../store/store';
 import { logout } from '../features/auth/authSlice';
 
-// Debug environment variables
-console.log('Environment variables:', {
-  NODE_ENV: process.env.NODE_ENV,
-  REACT_APP_API_URL: process.env.REACT_APP_API_URL
-});
-
-// Force the correct API URL
-const API_URL = 'https://task-management-system-rimh.onrender.com';
-const baseURL = `${API_URL}/api`;
+// Use environment variable with fallback for development
+const API_URL = process.env.REACT_APP_API_URL || 'https://task-management-system-rimh.onrender.com';
+const baseURL = `${API_URL}${API_URL.endsWith('/api') ? '' : '/api'}`;
 
 console.log('Using API base URL:', baseURL);
 
-// For development, you can uncomment this to use localhost
-// const baseURL = 'http://localhost:5000/api';
-// console.log('Using LOCALHOST API URL:', baseURL);
-
+// Create axios instance with default config
 const api = axios.create({
   baseURL,
   withCredentials: true,
