@@ -3,7 +3,7 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 // API configuration
 export const API_BASE_URL = isProduction
-  ? 'https://your-production-api-url.com/api' // Replace with your production API URL
+  ? 'https://task-management-system-rimh.onrender.com/api' // Render backend URL
   : 'http://localhost:5000/api'; // Default to local development server
 
 // Auth configuration
