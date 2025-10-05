@@ -16,7 +16,15 @@ export const fetchClients = async (token: string): Promise<Client[]> => {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
+      credentials: 'include', // Important for sending cookies
     });
+    
+    if (response.status === 401) {
+      // Token expired or invalid
+      localStorage.removeItem('authToken');
+      window.location.href = '/login';
+      return [];
+    }
     
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
@@ -28,6 +36,10 @@ export const fetchClients = async (token: string): Promise<Client[]> => {
     return Array.isArray(data) ? data : [];
   } catch (error) {
     console.error('Error in fetchClients:', error);
+    if (error instanceof Error && error.message.includes('401')) {
+      localStorage.removeItem('authToken');
+      window.location.href = '/login';
+    }
     return [];
   }
 };

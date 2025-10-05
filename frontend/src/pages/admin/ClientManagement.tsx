@@ -68,15 +68,23 @@ const ClientManagement = () => {
 
   const { token } = useAppSelector((state: RootState) => state.auth);
 
+  // Log clients when they change
+  useEffect(() => {
+    console.log('Current clients:', clients);
+  }, [clients]);
+
   // Fetch clients on component mount and when token changes
   useEffect(() => {
     const loadClients = async () => {
       if (!token) return;
       
       try {
+        console.log('Fetching clients...');
         const clientsData = await fetchClients(token);
         // Ensure clientsData is an array before setting it
-        setClients(Array.isArray(clientsData) ? clientsData : []);
+        const clientsList = Array.isArray(clientsData) ? clientsData : [];
+        console.log('Setting clients list:', clientsList);
+        setClients(clientsList);
       } catch (error) {
         console.error('Error fetching clients:', error);
         setSnackbar({
@@ -109,6 +117,7 @@ const ClientManagement = () => {
     try {
       if (currentClient?._id) {
         // Update existing client
+        console.log('Updating client:', currentClient._id, formData);
         await updateClient(currentClient._id, formData, token);
         setSnackbar({
           open: true,
@@ -117,7 +126,9 @@ const ClientManagement = () => {
         });
       } else {
         // Create new client
-        await createClient(formData, token);
+        console.log('Creating new client:', formData);
+        const newClient = await createClient(formData, token);
+        console.log('New client created:', newClient);
         setSnackbar({
           open: true,
           message: 'Client created successfully',
@@ -126,8 +137,10 @@ const ClientManagement = () => {
       }
 
       // Refresh clients list
+      console.log('Refreshing clients list...');
       const clientsData = await fetchClients(token);
-      setClients(clientsData);
+      console.log('Refreshed clients data:', clientsData);
+      setClients(Array.isArray(clientsData) ? clientsData : []);
       handleCloseDialog();
     } catch (error) {
       console.error('Error saving client:', error);
@@ -275,7 +288,13 @@ const ClientManagement = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {clients.map((client) => (
+            {clients.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} align="center">
+                  No clients found
+                </TableCell>
+              </TableRow>
+            ) : clients.map((client) => (
               <TableRow key={client._id}>
                 <TableCell>{client.name}</TableCell>
                 <TableCell>{client.email || '-'}</TableCell>
