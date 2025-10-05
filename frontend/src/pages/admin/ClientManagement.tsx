@@ -295,9 +295,18 @@ const ClientManagement = () => {
       </TableContainer>
 
       {/* Add/Edit Client Dialog */}
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
+      <Dialog 
+        open={openDialog} 
+        onClose={handleCloseDialog} 
+        maxWidth="sm" 
+        fullWidth
+        disableEnforceFocus // Prevents focus from being pulled back to the dialog
+        disableAutoFocus // Prevents auto-focusing the first focusable element
+      >
         <form onSubmit={handleSubmit}>
-          <DialogTitle>{currentClient ? 'Edit Client' : 'Add New Client'}</DialogTitle>
+          <DialogTitle id="client-dialog-title">
+            {currentClient ? 'Edit Client' : 'Add New Client'}
+          </DialogTitle>
           <DialogContent>
             <Box sx={{ mt: 2 }}>
               <TextField
@@ -338,8 +347,14 @@ const ClientManagement = () => {
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={openDeleteDialog} onClose={handleCloseDeleteDialog}>
-        <DialogTitle>Delete Client</DialogTitle>
+      <Dialog 
+        open={openDeleteDialog} 
+        onClose={handleCloseDeleteDialog}
+        disableEnforceFocus
+        disableAutoFocus
+        aria-labelledby="delete-dialog-title"
+      >
+        <DialogTitle id="delete-dialog-title">Delete Client</DialogTitle>
         <DialogContent>
           <Typography>
             Are you sure you want to delete the client "{currentClient?.name}"?
