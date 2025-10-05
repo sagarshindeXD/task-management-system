@@ -59,7 +59,8 @@ const ClientManagement = () => {
       
       try {
         const clientsData = await fetchClients(token);
-        setClients(clientsData);
+        // Ensure clientsData is an array before setting it
+        setClients(Array.isArray(clientsData) ? clientsData : []);
       } catch (error) {
         console.error('Error fetching clients:', error);
         setSnackbar({
@@ -67,6 +68,8 @@ const ClientManagement = () => {
           message: 'Failed to load clients',
           severity: 'error'
         });
+        // Set to empty array on error to prevent map error
+        setClients([]);
       }
     };
 

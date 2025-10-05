@@ -10,19 +10,26 @@ export interface Client {
 }
 
 export const fetchClients = async (token: string): Promise<Client[]> => {
-  const response = await fetch(`${API_BASE_URL}/clients`, {
-    headers: { 
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-  });
-  
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to fetch clients');
+  try {
+    const response = await fetch(`${API_BASE_URL}/clients`, {
+      headers: { 
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.message || 'Failed to fetch clients');
+    }
+    
+    const data = await response.json();
+    // Ensure we always return an array
+    return Array.isArray(data) ? data : [];
+  } catch (error) {
+    console.error('Error in fetchClients:', error);
+    return [];
   }
-  
-  return response.json();
 };
 
 export const createClient = async (clientData: Omit<Client, '_id'>, token: string): Promise<Client> => {
