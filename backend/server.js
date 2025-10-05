@@ -20,8 +20,10 @@ const allowedOrigins = [
   'https://task-management-system-4me42h9no-sagarshindexds-projects.vercel.app',
   'https://task-management-system-rimh.onrender.com',
   'https://task-management-system-git-main-sagarshindexds-projects.vercel.app',
-  'https://task-management-system-2itvh436w-sagarshindexds-projects.vercel.app', // New Vercel preview URL
-  /^\.*\.vercel\.app$/ // Allow all Vercel preview URLs
+  'https://task-management-system-2itvh436w-sagarshindexds-projects.vercel.app',
+  'https://task-management-system-ox9ac1006-sagarshindexds-projects.vercel.app', // New Vercel preview URL
+  /^https:\/\/task-management-system-.*-sagarshindexds-projects\.vercel\.app$/, // Match all preview URLs
+  /^https:\/\/task-management-system(-[a-z0-9]+)*\.vercel\.app$/ // Match all Vercel deployment URLs
 ];
 const corsOptions = {
   origin: function (origin, callback) {
