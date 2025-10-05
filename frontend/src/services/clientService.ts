@@ -119,7 +119,7 @@ export const deleteClient = async (id: string, token: string): Promise<void> => 
 };
 
 export const updateClientStatus = async (id: string, isActive: boolean, token: string): Promise<Client> => {
-  const response = await fetch(`${API_BASE_URL}/clients/${id}`, {
+  const response = await fetch(`${API_BASE_URL}/clients/${id}/status`, {
     method: 'PATCH',
     headers: { 
       'Authorization': `Bearer ${token}`,

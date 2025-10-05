@@ -234,20 +234,31 @@ const ClientManagement = () => {
   const handleToggleStatus = async (client: Client) => {
     if (!client._id || !token) return;
     
+    const newStatus = !client.isActive;
+    
     try {
-      const updatedClient = await updateClientStatus(client._id, !client.isActive, token);
-      setSnackbar({
-        open: true,
-        message: `Client ${updatedClient.isActive ? 'activated' : 'deactivated'} successfully`,
-        severity: 'success'
-      });
+      // Optimistically update the UI
+      setClients(prevClients => 
+        prevClients.map(c => 
+          c._id === client._id ? { ...c, isActive: newStatus } : c
+        )
+      );
       
-      // Update the client in the list
+      // Make the API call
+      const updatedClient = await updateClientStatus(client._id, newStatus, token);
+      
+      // Update with the actual response from the server
       setClients(prevClients => 
         prevClients.map(c => 
           c._id === client._id ? { ...c, isActive: updatedClient.isActive } : c
         )
       );
+      
+      setSnackbar({
+        open: true,
+        message: `Client ${updatedClient.isActive ? 'activated' : 'deactivated'} successfully`,
+        severity: 'success'
+      });
     } catch (error) {
       console.error('Error toggling client status:', error);
       setSnackbar({

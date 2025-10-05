@@ -10,7 +10,16 @@ export const getClients = async (token: string) => {
       Authorization: `Bearer ${token}`,
     },
   });
-  return response.data.data.clients;
+  
+  // Handle both response formats for backward compatibility
+  if (response.data && response.data.data && Array.isArray(response.data.data.clients)) {
+    return response.data.data.clients;
+  } else if (Array.isArray(response.data)) {
+    return response.data;
+  }
+  
+  console.warn('Unexpected response format:', response.data);
+  return [];
 };
 
 // Get a single client
