@@ -17,9 +17,11 @@ const port = process.env.PORT || 5000;
 const allowedOrigins = [
   'http://localhost:3000',
   'https://task-management-system-five-theta.vercel.app',
-  'https://task-management-system-4me42h9no-sagarshindexds-projects.vercel.app', // Vercel preview URL
+  'https://task-management-system-4me42h9no-sagarshindexds-projects.vercel.app',
   'https://task-management-system-rimh.onrender.com',
-  'https://task-management-system-git-main-sagarshindexds-projects.vercel.app'  // Main Vercel URL
+  'https://task-management-system-git-main-sagarshindexds-projects.vercel.app',
+  'https://task-management-system-2itvh436w-sagarshindexds-projects.vercel.app', // New Vercel preview URL
+  /^\.*\.vercel\.app$/ // Allow all Vercel preview URLs
 ];
 const corsOptions = {
   origin: function (origin, callback) {
