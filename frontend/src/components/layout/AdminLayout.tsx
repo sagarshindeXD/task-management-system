@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Outlet, Navigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store/store';
-import Sidebar from './Sidebar';
+import AdminSidebar from './AdminSidebar';
 import { AppBar, Box, IconButton, Toolbar, Typography } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 
@@ -48,7 +48,7 @@ const AdminLayout = () => {
           </Typography>
         </Toolbar>
       </AppBar>
-      <Sidebar 
+      <AdminSidebar 
         mobileOpen={mobileOpen} 
         onDrawerToggle={handleDrawerToggle} 
       />
