@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useA11yDialog } from '../../hooks/useA11yDialog';
 import {
   Box,
   Button,
@@ -36,6 +37,9 @@ import {
 const ClientManagement = () => {
   // State management
   const [clients, setClients] = useState<Client[]>([]);
+  
+  // Use the a11y dialog hook
+  const { rootRef, mainContentRef } = useA11yDialog(openDialog || openDeleteDialog);
   const [openDialog, setOpenDialog] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [currentClient, setCurrentClient] = useState<Client | null>(null);
@@ -300,21 +304,30 @@ const ClientManagement = () => {
         onClose={handleCloseDialog} 
         maxWidth="sm" 
         fullWidth
-        disableEnforceFocus // Prevents focus from being pulled back to the dialog
-        disableAutoFocus // Prevents auto-focusing the first focusable element
+        disableEnforceFocus
+        disableAutoFocus
+        aria-modal="true"
+        role="dialog"
       >
         <form onSubmit={handleSubmit}>
           <DialogTitle id="client-dialog-title">
             {currentClient ? 'Edit Client' : 'Add New Client'}
           </DialogTitle>
           <DialogContent>
-            <Box sx={{ mt: 2 }}>
+       return (
+    <Box 
+      component="main"
+      id="main-content"
+      ref={mainContentRef}
+      sx={{ p: 3 }}
+      tabIndex={-1}
+      aria-labelledby="client-dialog-title"
+    >
               <TextField
                 fullWidth
                 label="Name"
                 name="name"
                 value={formData.name}
-                onChange={handleInputChange}
                 margin="normal"
                 required
               />
@@ -352,6 +365,8 @@ const ClientManagement = () => {
         onClose={handleCloseDeleteDialog}
         disableEnforceFocus
         disableAutoFocus
+        aria-modal="true"
+        role="alertdialog"
         aria-labelledby="delete-dialog-title"
       >
         <DialogTitle id="delete-dialog-title">Delete Client</DialogTitle>
