@@ -1,4 +1,4 @@
-import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createAsyncThunk, createSlice, PayloadAction, ActionReducerMapBuilder } from '@reduxjs/toolkit';
 import {
   getClients,
   getClient,
@@ -57,8 +57,27 @@ export const fetchClients = createAsyncThunk(
       if (!token) {
         return rejectWithValue('No authentication token found');
       }
-      const data = await getClients(token);
-      return data;
+      console.log('Fetching clients with token:', token.substring(0, 10) + '...');
+      const response = await getClients(token);
+      console.log('Clients API response:', response);
+      
+      // Handle different response formats
+      let clients = [];
+      if (Array.isArray(response)) {
+        clients = response;
+      } else if (response && response.data && Array.isArray(response.data.clients)) {
+        clients = response.data.clients;
+      } else if (response && response.data && Array.isArray(response.data)) {
+        clients = response.data;
+      } else if (response && Array.isArray(response.clients)) {
+        clients = response.clients;
+      } else {
+        console.warn('Unexpected clients data format:', response);
+        return [];
+      }
+      
+      console.log('Processed clients:', clients);
+      return clients;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch clients');
     }
@@ -157,26 +176,37 @@ const clientSlice = createSlice({
   name: 'clients',
   initialState,
   reducers: {
-    clearCurrentClient: (state) => {
+    clearCurrentClient: (state: ClientState) => {
       state.currentClient = null;
     },
-    clearSearchResults: (state) => {
+    clearSearchResults: (state: ClientState) => {
       state.searchResults = [];
     },
   },
-  extraReducers: (builder) => {
+  extraReducers: (builder: ActionReducerMapBuilder<ClientState>) => {
     builder
-      // Fetch Clients
       .addCase(fetchClients.pending, (state) => {
         state.status = 'loading';
       })
-      .addCase(fetchClients.fulfilled, (state, action: PayloadAction<Client[]>) => {
+      .addCase(fetchClients.fulfilled, (state, action) => {
         state.status = 'succeeded';
-        state.clients = action.payload;
+        // Handle both response formats
+        if (Array.isArray(action.payload)) {
+          state.clients = action.payload;
+        } else if (action.payload && action.payload.data && Array.isArray(action.payload.data.clients)) {
+          state.clients = action.payload.data.clients;
+        } else if (action.payload && Array.isArray(action.payload.clients)) {
+          state.clients = action.payload.clients;
+        } else {
+          console.warn('Unexpected clients data format:', action.payload);
+          state.clients = [];
+        }
+        console.log('Clients in Redux store:', state.clients);
       })
       .addCase(fetchClients.rejected, (state, action) => {
         state.status = 'failed';
         state.error = action.payload as string;
+        console.error('Failed to fetch clients:', action.payload);
       })
       
       // Fetch Single Client
