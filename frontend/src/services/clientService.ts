@@ -46,11 +46,18 @@ export const fetchClients = async (token: string): Promise<Client[]> => {
       }
     }
     
-    const data = responseText ? JSON.parse(responseText) : [];
+    const data = responseText ? JSON.parse(responseText) : {};
     console.log('Parsed response data:', data);
     
-    // Ensure we always return an array
-    return Array.isArray(data) ? data : [];
+    // Extract the clients array from the response
+    if (data && data.data && Array.isArray(data.data.clients)) {
+      return data.data.clients;
+    } else if (Array.isArray(data)) {
+      // Fallback in case the response is already an array
+      return data;
+    }
+    console.warn('Unexpected response format, returning empty array');
+    return [];
   } catch (error) {
     console.error('Error in fetchClients:', error);
     if (error instanceof Error && error.message.includes('401')) {
