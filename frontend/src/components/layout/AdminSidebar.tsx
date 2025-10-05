@@ -43,7 +43,6 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ mobileOpen, onDrawerToggle 
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const menuItems: MenuItem[] = [
-    { text: 'Dashboard', icon: <DashboardIcon />, path: '/admin' },
     { text: 'User Management', icon: <PeopleIcon />, path: '/admin/users' },
     { text: 'Client Management', icon: <BusinessIcon />, path: '/admin/clients' },
   ];
