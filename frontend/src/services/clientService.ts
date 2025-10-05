@@ -7,6 +7,16 @@ export interface Client {
   phone?: string;
   isActive?: boolean;
   createdAt?: string;
+  updatedAt?: string;
+  address?: {
+    street?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+    postalCode?: string;
+  };
+  createdBy?: string;
+  fullAddress?: string;
 }
 
 export const fetchClients = async (token: string): Promise<Client[]> => {
@@ -49,12 +59,19 @@ export const fetchClients = async (token: string): Promise<Client[]> => {
     const data = responseText ? JSON.parse(responseText) : {};
     console.log('Parsed response data:', data);
     
-    // Extract the clients array from the response
-    if (data && data.data && Array.isArray(data.data.clients)) {
+    // Handle different possible response formats
+    if (data && data.data && Array.isArray(data.data)) {
+      console.log('Found clients in data.data:', data.data);
+      return data.data;
+    } else if (data && data.data && data.data.clients && Array.isArray(data.data.clients)) {
+      console.log('Found clients in data.data.clients:', data.data.clients);
       return data.data.clients;
     } else if (Array.isArray(data)) {
-      // Fallback in case the response is already an array
+      console.log('Response is already an array:', data);
       return data;
+    } else if (data && Array.isArray(data.clients)) {
+      console.log('Found clients in data.clients:', data.clients);
+      return data.clients;
     }
     console.warn('Unexpected response format, returning empty array');
     return [];

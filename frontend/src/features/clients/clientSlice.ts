@@ -1,35 +1,14 @@
-import { createAsyncThunk, createSlice, PayloadAction, ActionReducerMapBuilder } from '@reduxjs/toolkit';
-import {
-  getClients,
-  getClient,
-  createClient,
-  updateClient,
-  deleteClient,
-  searchClients,
-} from './clientService';
+import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { 
+  Client,
+  fetchClients as fetchClientsService,
+  createClient as createClientService,
+  updateClient as updateClientService,
+  deleteClient as deleteClientService
+} from '../../services/clientService';
 import { RootState } from '../../store/store';
 
-interface ClientAddress {
-  street?: string;
-  city?: string;
-  state?: string;
-  country?: string;
-  postalCode?: string;
-}
-
-export interface Client {
-  _id: string;
-  name: string;
-  email?: string;
-  phone?: string;
-  address?: ClientAddress;
-  isActive: boolean;
-  createdBy: string;
-  createdAt: string;
-  updatedAt: string;
-  __v?: number;
-  fullAddress?: string;
-}
+// Using Client interface from clientService
 
 interface ClientState {
   clients: Client[];
@@ -47,127 +26,94 @@ const initialState: ClientState = {
   searchResults: [],
 };
 
+// Helper function to get token
+const getToken = (getState: () => unknown) => {
+  const { auth } = getState() as RootState;
+  return auth.token || localStorage.getItem('token');
+};
+
 // Async thunks
 export const fetchClients = createAsyncThunk(
   'clients/fetchClients',
   async (_, { getState, rejectWithValue }) => {
+    const token = getToken(getState);
+    if (!token) return rejectWithValue('No authentication token found');
+    
     try {
-      const { auth } = getState() as RootState;
-      const token = auth.token;
-      if (!token) {
-        return rejectWithValue('No authentication token found');
-      }
-      console.log('Fetching clients with token:', token.substring(0, 10) + '...');
-      const response = await getClients(token);
-      console.log('Clients API response:', response);
-      
-      // Handle different response formats
-      let clients = [];
-      if (Array.isArray(response)) {
-        clients = response;
-      } else if (response && response.data && Array.isArray(response.data.clients)) {
-        clients = response.data.clients;
-      } else if (response && response.data && Array.isArray(response.data)) {
-        clients = response.data;
-      } else if (response && Array.isArray(response.clients)) {
-        clients = response.clients;
-      } else {
-        console.warn('Unexpected clients data format:', response);
-        return [];
-      }
-      
-      console.log('Processed clients:', clients);
-      return clients;
+      const clients = await fetchClientsService(token);
+      return clients.map((clientData: any) => {
+        // Create a new client object with all required fields
+        const client: Client = {
+          ...clientData,
+          name: clientData.name || 'Unnamed Client',
+          createdBy: clientData.createdBy || 'unknown',
+          updatedAt: clientData.updatedAt || new Date().toISOString(),
+          isActive: clientData.isActive ?? true,
+          // Ensure all required fields from BaseClient are present
+          email: clientData.email,
+          phone: clientData.phone,
+          _id: clientData._id,
+          // Extended fields
+          address: clientData.address,
+          fullAddress: clientData.fullAddress
+        };
+        return client;
+      });
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch clients');
+      return rejectWithValue(error.message || 'Failed to fetch clients');
     }
   }
 );
 
-export const fetchClient = createAsyncThunk(
-  'clients/fetchClient',
-  async (id: string, { getState, rejectWithValue }) => {
+export const createClient = createAsyncThunk(
+  'clients/createClient',
+  async (clientData: Omit<Client, '_id' | 'createdAt' | 'updatedAt'>, { getState, rejectWithValue }) => {
+    const token = getToken(getState);
+    if (!token) return rejectWithValue('No authentication token found');
+    
     try {
-      const { auth } = getState() as RootState;
-      const token = auth.token;
-      if (!token) {
-        return rejectWithValue('No authentication token found');
-      }
-      const data = await getClient(id, token);
-      return data;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch client');
-    }
-  }
-);
-
-export const addClient = createAsyncThunk(
-  'clients/addClient',
-  async (clientData: Omit<Client, '_id' | 'createdAt' | 'updatedAt' | 'createdBy'>, { getState, rejectWithValue }) => {
-    try {
-      const { auth } = getState() as RootState;
-      const token = auth.token;
-      if (!token) {
-        return rejectWithValue('No authentication token found');
-      }
-      const data = await createClient(clientData, token);
-      return data;
+      const newClient = await createClientService(clientData, token);
+      return {
+        ...newClient,
+        createdBy: newClient.createdBy || 'unknown',
+        updatedAt: newClient.updatedAt || new Date().toISOString(),
+        isActive: newClient.isActive ?? true
+      } as Client;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to create client');
     }
   }
 );
 
-export const editClient = createAsyncThunk(
-  'clients/editClient',
-  async (
-    { id, clientData }: { id: string; clientData: Partial<Omit<Client, '_id' | 'createdAt' | 'updatedAt' | 'createdBy'>> },
-    { getState, rejectWithValue }
-  ) => {
+export const updateClient = createAsyncThunk(
+  'clients/updateClient',
+  async ({ id, clientData }: { id: string; clientData: Partial<Client> }, { getState, rejectWithValue }) => {
+    const token = getToken(getState);
+    if (!token) return rejectWithValue('No authentication token found');
+    
     try {
-      const { auth } = getState() as RootState;
-      const token = auth.token;
-      if (!token) {
-        return rejectWithValue('No authentication token found');
-      }
-      const data = await updateClient(id, clientData, token);
-      return data;
+      const updatedClient = await updateClientService(id, clientData, token);
+      return {
+        ...updatedClient,
+        updatedAt: updatedClient.updatedAt || new Date().toISOString()
+      } as Client;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to update client');
     }
   }
 );
 
-export const removeClient = createAsyncThunk(
-  'clients/removeClient',
+export const deleteClient = createAsyncThunk(
+  'clients/deleteClient',
   async (id: string, { getState, rejectWithValue }) => {
+    const token = getToken(getState);
+    if (!token) return rejectWithValue('No authentication token found');
+    
     try {
-      const { auth } = getState() as RootState;
-      const token = auth.token;
-      if (!token) {
-        return rejectWithValue('No authentication token found');
-      }
-      await deleteClient(id, token);
+      await deleteClientService(id, token);
       return id;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to delete client');
-    }
-  }
-);
-
-export const searchClientsAction = createAsyncThunk(
-  'clients/searchClients',
-  async (query: string, { getState, rejectWithValue }) => {
-    try {
-      const { auth } = getState() as RootState;
-      const token = auth.token;
-      if (!token) {
-        return rejectWithValue('No authentication token found');
-      }
-      const data = await searchClients(query, token);
-      return data;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to search clients');
     }
   }
 );
@@ -176,116 +122,81 @@ const clientSlice = createSlice({
   name: 'clients',
   initialState,
   reducers: {
-    clearCurrentClient: (state: ClientState) => {
+    clearCurrentClient: (state) => {
       state.currentClient = null;
     },
-    clearSearchResults: (state: ClientState) => {
+    clearSearchResults: (state) => {
       state.searchResults = [];
     },
+    setCurrentClient: (state, action: PayloadAction<Client | null>) => {
+      state.currentClient = action.payload;
+    },
   },
-  extraReducers: (builder: ActionReducerMapBuilder<ClientState>) => {
-    builder
-      .addCase(fetchClients.pending, (state) => {
-        state.status = 'loading';
-      })
-      .addCase(fetchClients.fulfilled, (state, action) => {
-        state.status = 'succeeded';
-        // Handle both response formats
-        if (Array.isArray(action.payload)) {
-          state.clients = action.payload;
-        } else if (action.payload && action.payload.data && Array.isArray(action.payload.data.clients)) {
-          state.clients = action.payload.data.clients;
-        } else if (action.payload && Array.isArray(action.payload.clients)) {
-          state.clients = action.payload.clients;
-        } else {
-          console.warn('Unexpected clients data format:', action.payload);
-          state.clients = [];
-        }
-        console.log('Clients in Redux store:', state.clients);
-      })
-      .addCase(fetchClients.rejected, (state, action) => {
-        state.status = 'failed';
-        state.error = action.payload as string;
-        console.error('Failed to fetch clients:', action.payload);
-      })
-      
-      // Fetch Single Client
-      .addCase(fetchClient.pending, (state) => {
-        state.status = 'loading';
-      })
-      .addCase(fetchClient.fulfilled, (state, action: PayloadAction<Client>) => {
-        state.status = 'succeeded';
+  extraReducers: (builder) => {
+    // Fetch Clients
+    builder.addCase(fetchClients.pending, (state) => {
+      state.status = 'loading';
+    });
+    builder.addCase(fetchClients.fulfilled, (state, action) => {
+      state.status = 'succeeded';
+      state.clients = action.payload;
+    });
+    builder.addCase(fetchClients.rejected, (state, action) => {
+      state.status = 'failed';
+      state.error = action.payload as string;
+    });
+
+    // Create Client
+    builder.addCase(createClient.pending, (state) => {
+      state.status = 'loading';
+    });
+    builder.addCase(createClient.fulfilled, (state, action) => {
+      state.status = 'succeeded';
+      state.clients.push(action.payload);
+    });
+    builder.addCase(createClient.rejected, (state, action) => {
+      state.status = 'failed';
+      state.error = action.payload as string;
+    });
+
+    // Update Client
+    builder.addCase(updateClient.pending, (state) => {
+      state.status = 'loading';
+    });
+    builder.addCase(updateClient.fulfilled, (state, action) => {
+      state.status = 'succeeded';
+      const index = state.clients.findIndex(client => client._id === action.payload._id);
+      if (index !== -1) {
+        state.clients[index] = action.payload;
+      }
+      if (state.currentClient?._id === action.payload._id) {
         state.currentClient = action.payload;
-      })
-      .addCase(fetchClient.rejected, (state, action) => {
-        state.status = 'failed';
-        state.error = action.payload as string;
-      })
-      
-      // Add Client
-      .addCase(addClient.pending, (state) => {
-        state.status = 'loading';
-      })
-      .addCase(addClient.fulfilled, (state, action: PayloadAction<Client>) => {
-        state.status = 'succeeded';
-        state.clients.push(action.payload);
-      })
-      .addCase(addClient.rejected, (state, action) => {
-        state.status = 'failed';
-        state.error = action.payload as string;
-      })
-      
-      // Update Client
-      .addCase(editClient.pending, (state) => {
-        state.status = 'loading';
-      })
-      .addCase(editClient.fulfilled, (state, action: PayloadAction<Client>) => {
-        state.status = 'succeeded';
-        const index = state.clients.findIndex(client => client._id === action.payload._id);
-        if (index !== -1) {
-          state.clients[index] = action.payload;
-        }
-        if (state.currentClient?._id === action.payload._id) {
-          state.currentClient = action.payload;
-        }
-      })
-      .addCase(editClient.rejected, (state, action) => {
-        state.status = 'failed';
-        state.error = action.payload as string;
-      })
-      
-      // Delete Client
-      .addCase(removeClient.pending, (state) => {
-        state.status = 'loading';
-      })
-      .addCase(removeClient.fulfilled, (state, action: PayloadAction<string>) => {
-        state.status = 'succeeded';
-        state.clients = state.clients.filter(client => client._id !== action.payload);
-        if (state.currentClient?._id === action.payload) {
-          state.currentClient = null;
-        }
-      })
-      .addCase(removeClient.rejected, (state, action) => {
-        state.status = 'failed';
-        state.error = action.payload as string;
-      })
-      
-      // Search Clients
-      .addCase(searchClientsAction.pending, (state) => {
-        state.status = 'loading';
-      })
-      .addCase(searchClientsAction.fulfilled, (state, action: PayloadAction<Client[]>) => {
-        state.status = 'succeeded';
-        state.searchResults = action.payload;
-      })
-      .addCase(searchClientsAction.rejected, (state, action) => {
-        state.status = 'failed';
-        state.error = action.payload as string;
-      });
+      }
+    });
+    builder.addCase(updateClient.rejected, (state, action) => {
+      state.status = 'failed';
+      state.error = action.payload as string;
+    });
+
+    // Delete Client
+    builder.addCase(deleteClient.pending, (state) => {
+      state.status = 'loading';
+    });
+    builder.addCase(deleteClient.fulfilled, (state, action) => {
+      state.status = 'succeeded';
+      state.clients = state.clients.filter(client => client._id !== action.payload);
+      if (state.currentClient?._id === action.payload) {
+        state.currentClient = null;
+      }
+    });
+    builder.addCase(deleteClient.rejected, (state, action) => {
+      state.status = 'failed';
+      state.error = action.payload as string;
+    });
   },
 });
 
-export const { clearCurrentClient, clearSearchResults } = clientSlice.actions;
+export const { clearCurrentClient, clearSearchResults, setCurrentClient } = clientSlice.actions;
 
 export const selectAllClients = (state: RootState) => state.clients.clients;
 export const selectClientById = (state: RootState, clientId: string) =>
@@ -294,5 +205,4 @@ export const selectCurrentClient = (state: RootState) => state.clients.currentCl
 export const selectClientsStatus = (state: RootState) => state.clients.status;
 export const selectClientsError = (state: RootState) => state.clients.error;
 export const selectSearchResults = (state: RootState) => state.clients.searchResults;
-
 export default clientSlice.reducer;
