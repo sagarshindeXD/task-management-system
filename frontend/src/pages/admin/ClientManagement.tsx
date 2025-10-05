@@ -37,11 +37,23 @@ import {
 const ClientManagement = () => {
   // State management
   const [clients, setClients] = useState<Client[]>([]);
-  
-  // Use the a11y dialog hook
-  const { rootRef, mainContentRef } = useA11yDialog(openDialog || openDeleteDialog);
   const [openDialog, setOpenDialog] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  
+  // Use the a11y dialog hook
+  const { rootRef, mainContentRef } = useA11yDialog(false);
+  
+  // Update the dialog state when open states change
+  useEffect(() => {
+    if (rootRef.current && mainContentRef.current) {
+      mainContentRef.current.inert = openDialog || openDeleteDialog;
+      if (openDialog || openDeleteDialog) {
+        mainContentRef.current.setAttribute('aria-hidden', 'true');
+      } else {
+        mainContentRef.current.removeAttribute('aria-hidden');
+      }
+    }
+  }, [openDialog, openDeleteDialog, rootRef, mainContentRef]);
   const [currentClient, setCurrentClient] = useState<Client | null>(null);
   const [snackbar, setSnackbar] = useState({ 
     open: false, 
