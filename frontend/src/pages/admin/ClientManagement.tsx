@@ -370,6 +370,7 @@ const ClientManagement = () => {
                 label="Name"
                 name="name"
                 value={formData.name}
+                onChange={handleInputChange}
                 margin="normal"
                 required
               />
