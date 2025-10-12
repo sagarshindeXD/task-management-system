@@ -27,9 +27,12 @@ export interface Task {
   status: 'todo' | 'in-progress' | 'completed';
   priority: 'low' | 'medium' | 'high';
   dueDate?: string;
-  createdBy: User | string;  // Can be either User object or string ID
+  assignDate?: string; // When the task was assigned
+  department?: string; // Department field
+  createdBy: User | string;  // Who created the task
+  assignedBy: User | string; // Who assigned the task (for admin view)
   assignedTo: string[];
-  client: string | Client;   // Can be either Client object or string ID
+  client: string | Client;
   labels: string[];
   createdAt: string;
   updatedAt: string;
@@ -41,6 +44,30 @@ interface TaskState {
   status: 'idle' | 'loading' | 'succeeded' | 'failed';
   error: string | null;
   total: number;
+  myCompletedTasks: Task[];
+  teamTasks: Task[];
+  dashboardMetrics: {
+    users: Array<{
+      _id: string;
+      name: string;
+      tasksAssigned: number;
+      doneTasks: number;
+      pendingTasks: number;
+      delayedTasks: number;
+      inReviewTasks: number;
+      workingTasks: number;
+      performance: number;
+    }>;
+    departments: Array<{
+      name: string;
+      tasksAssigned: number;
+      doneTasks: number;
+      pendingTasks: number;
+      delayedTasks: number;
+      inReviewTasks: number;
+      workingTasks: number;
+    }>;
+  } | null;
   filters: {
     status: string[];
     priority: string[];
@@ -57,6 +84,9 @@ const initialState: TaskState = {
   status: 'idle',
   error: null,
   total: 0,
+  myCompletedTasks: [],
+  teamTasks: [],
+  dashboardMetrics: null,
   filters: {
     status: [],
     priority: [],
@@ -87,6 +117,76 @@ export const fetchAssignedTasks = createAsyncThunk<{ tasks: Task[]; total: numbe
       };
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch assigned tasks');
+    }
+  }
+);
+
+// Add new async thunk for fetching dashboard metrics for admin
+export const fetchDashboardMetrics = createAsyncThunk(
+  'tasks/fetchDashboardMetrics',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await api.get<{
+        users: Array<{
+          _id: string;
+          name: string;
+          tasksAssigned: number;
+          doneTasks: number;
+          pendingTasks: number;
+          delayedTasks: number;
+          inReviewTasks: number;
+          workingTasks: number;
+          performance: number;
+        }>;
+        departments: Array<{
+          name: string;
+          tasksAssigned: number;
+          doneTasks: number;
+          pendingTasks: number;
+          delayedTasks: number;
+          inReviewTasks: number;
+          workingTasks: number;
+        }>;
+      }>('/tasks/dashboard-metrics');
+      return response.data;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch dashboard metrics');
+    }
+  }
+);
+
+// Add new async thunk for fetching completed tasks assigned to the current user
+export const fetchMyCompletedTasks = createAsyncThunk<{ tasks: Task[]; total: number }, void, { state: RootState }>(
+  'tasks/fetchMyCompletedTasks',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await api.get<{ data: { tasks: Task[]; total: number } }>(
+        '/tasks/my-completed'
+      );
+      return {
+        tasks: response.data.data.tasks,
+        total: response.data.data.total
+      };
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch completed tasks');
+    }
+  }
+);
+
+// Add new async thunk for fetching all team tasks (everyone's tasks)
+export const fetchTeamTasks = createAsyncThunk<{ tasks: Task[]; total: number }, void, { state: RootState }>(
+  'tasks/fetchTeamTasks',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await api.get<{ data: { tasks: Task[]; total: number } }>(
+        '/tasks/team-tasks'
+      );
+      return {
+        tasks: response.data.data.tasks,
+        total: response.data.data.total
+      };
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch team tasks');
     }
   }
 );
@@ -405,20 +505,55 @@ const taskSlice = createSlice({
           state.currentTask = null;
         }
       })
-      // Update Task Status
-      .addCase(updateTaskStatus.fulfilled, (state, action: PayloadAction<Task>) => {
-        const updatedTask = action.payload;
-        const existingTask = state.tasks.find(task => task._id === updatedTask._id);
-        if (existingTask) {
-          existingTask.status = updatedTask.status;
-        }
-        if (state.currentTask?._id === updatedTask._id) {
-          state.currentTask = updatedTask;
-        }
-      });
+    // Fetch My Completed Tasks
+    builder.addCase(fetchMyCompletedTasks.pending, (state) => {
+      state.status = 'loading';
+      state.error = null;
+    });
+    builder.addCase(fetchMyCompletedTasks.fulfilled, (state, action) => {
+      state.status = 'succeeded';
+      state.myCompletedTasks = action.payload.tasks;
+      state.error = null;
+    });
+    builder.addCase(fetchMyCompletedTasks.rejected, (state, action) => {
+      state.status = 'failed';
+      state.error = action.payload as string;
+      state.myCompletedTasks = [];
+    });
+
+    // Fetch Team Tasks
+    builder.addCase(fetchTeamTasks.pending, (state) => {
+      state.status = 'loading';
+      state.error = null;
+    });
+    builder.addCase(fetchTeamTasks.fulfilled, (state, action) => {
+      state.status = 'succeeded';
+      state.teamTasks = action.payload.tasks;
+      state.error = null;
+    });
+    builder.addCase(fetchTeamTasks.rejected, (state, action) => {
+      state.status = 'failed';
+      state.error = action.payload as string;
+      state.teamTasks = [];
+    });
+
+    // Fetch Dashboard Metrics
+    builder.addCase(fetchDashboardMetrics.pending, (state) => {
+      state.status = 'loading';
+      state.error = null;
+    });
+    builder.addCase(fetchDashboardMetrics.fulfilled, (state, action) => {
+      state.status = 'succeeded';
+      state.dashboardMetrics = action.payload;
+      state.error = null;
+    });
+    builder.addCase(fetchDashboardMetrics.rejected, (state, action) => {
+      state.status = 'failed';
+      state.error = action.payload as string;
+      state.dashboardMetrics = null;
+    });
   },
 });
-
 export const { 
   setFilters, 
   resetFilters, 
@@ -433,5 +568,8 @@ export const selectTaskStatus = (state: RootState) => state.tasks.status;
 export const selectTaskError = (state: RootState) => state.tasks.error;
 export const selectTaskFilters = (state: RootState) => state.tasks.filters;
 export const selectTotalTasks = (state: RootState) => state.tasks.total;
+export const selectMyCompletedTasks = (state: RootState) => state.tasks.myCompletedTasks;
+export const selectTeamTasks = (state: RootState) => state.tasks.teamTasks;
+export const selectDashboardMetrics = (state: RootState) => state.tasks.dashboardMetrics;
 
 export default taskSlice.reducer;

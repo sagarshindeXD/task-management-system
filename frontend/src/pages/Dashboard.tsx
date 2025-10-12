@@ -1,14 +1,15 @@
 import React, { useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../hooks/reduxHooks';
-import { fetchTasks, Task } from '../features/tasks/taskSlice';
+import { fetchTasks, Task, fetchDashboardMetrics } from '../features/tasks/taskSlice';
+import { selectCurrentUser } from '../features/auth/authSlice';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
-import { 
-  Box, 
-  Typography, 
-  Paper, 
-  Card, 
-  CardContent, 
+import {
+  Box,
+  Typography,
+  Paper,
+  Card,
+  CardContent,
   CardHeader,
   Avatar,
   List,
@@ -19,25 +20,44 @@ import {
   Button,
   CircularProgress,
   useTheme,
-  LinearProgress
+  LinearProgress,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Grid,
 } from '@mui/material';
 // Grid replaced with Box for layout
-import { 
+import {
   Assignment as TaskIcon,
   CheckCircle as CompletedIcon,
   PendingActions as InProgressIcon,
   AssignmentLate as TodoIcon,
-  Add as AddIcon
+  Add as AddIcon,
+  People as PeopleIcon,
+  Business as BusinessIcon,
+  TrendingUp as TrendingUpIcon,
 } from '@mui/icons-material';
 
 const Dashboard: React.FC = () => {
   const dispatch = useAppDispatch();
   const theme = useTheme();
+  const currentUser = useAppSelector(selectCurrentUser);
+  const isAdmin = currentUser?.role === 'admin';
+
   const { tasks, status } = useAppSelector((state) => state.tasks);
+  const dashboardMetrics = useAppSelector((state) => state.tasks.dashboardMetrics);
 
   useEffect(() => {
     dispatch(fetchTasks());
-  }, [dispatch]);
+
+    // Fetch dashboard metrics if user is admin
+    if (isAdmin) {
+      dispatch(fetchDashboardMetrics());
+    }
+  }, [dispatch, isAdmin]);
 
   // Filter and sort tasks
   const recentTasks = [...tasks]
@@ -47,7 +67,7 @@ const Dashboard: React.FC = () => {
   const completedTasks = tasks.filter((task: Task) => task.status === 'completed');
   const inProgressTasks = tasks.filter((task: Task) => task.status === 'in-progress');
   const todoTasks = tasks.filter((task: Task) => task.status === 'todo');
-  
+
   const upcomingDeadlines = tasks
     .filter((task: Task) => task.dueDate)
     .sort((a: Task, b: Task) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime())
@@ -89,7 +109,7 @@ const Dashboard: React.FC = () => {
     <Box p={3}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
         <Typography variant="h4" component="h1">
-          Dashboard
+          {isAdmin ? 'Admin Dashboard' : 'Dashboard'}
         </Typography>
         <Button
           variant="contained"
@@ -102,11 +122,117 @@ const Dashboard: React.FC = () => {
         </Button>
       </Box>
 
+      {/* Admin Dashboard Metrics */}
+      {isAdmin && dashboardMetrics && (
+        <>
+          {/* User Metrics */}
+          <Paper sx={{ p: 3, mb: 4, borderRadius: 2 }}>
+            <Box display="flex" alignItems="center" mb={3}>
+              <PeopleIcon sx={{ mr: 2, color: 'primary.main' }} />
+              <Typography variant="h5" component="h2">
+                User Performance
+              </Typography>
+            </Box>
+
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>User</TableCell>
+                    <TableCell align="center">Assigned</TableCell>
+                    <TableCell align="center">Done</TableCell>
+                    <TableCell align="center">Pending</TableCell>
+                    <TableCell align="center">Delayed</TableCell>
+                    <TableCell align="center">In Review</TableCell>
+                    <TableCell align="center">Working</TableCell>
+                    <TableCell align="center">Performance</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {dashboardMetrics.users.map((user) => (
+                    <TableRow key={user._id}>
+                      <TableCell component="th" scope="row">
+                        {user.name}
+                      </TableCell>
+                      <TableCell align="center">{user.tasksAssigned}</TableCell>
+                      <TableCell align="center">{user.doneTasks}</TableCell>
+                      <TableCell align="center">{user.pendingTasks}</TableCell>
+                      <TableCell align="center">{user.delayedTasks}</TableCell>
+                      <TableCell align="center">{user.inReviewTasks}</TableCell>
+                      <TableCell align="center">{user.workingTasks}</TableCell>
+                      <TableCell align="center">
+                        <Box display="flex" alignItems="center">
+                          <LinearProgress
+                            variant="determinate"
+                            value={user.performance}
+                            sx={{ width: 60, mr: 1 }}
+                          />
+                          <Typography variant="body2">{Math.round(user.performance)}%</Typography>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Paper>
+
+          {/* Department Metrics */}
+          <Paper sx={{ p: 3, mb: 4, borderRadius: 2 }}>
+            <Box display="flex" alignItems="center" mb={3}>
+              <BusinessIcon sx={{ mr: 2, color: 'primary.main' }} />
+              <Typography variant="h5" component="h2">
+                Department Overview
+              </Typography>
+            </Box>
+
+            <Grid container spacing={3}>
+              {dashboardMetrics.departments.map((dept) => (
+                <Grid item xs={12} sm={6} md={4} key={dept.name}>
+                  <Card sx={{ height: '100%', borderRadius: 2 }}>
+                    <CardHeader
+                      title={dept.name}
+                      titleTypographyProps={{ variant: 'h6' }}
+                    />
+                    <CardContent>
+                      <Box display="flex" justifyContent="space-between" mb={1}>
+                        <Typography variant="body2" color="text.secondary">Assigned:</Typography>
+                        <Typography variant="body2">{dept.tasksAssigned}</Typography>
+                      </Box>
+                      <Box display="flex" justifyContent="space-between" mb={1}>
+                        <Typography variant="body2" color="text.secondary">Done:</Typography>
+                        <Typography variant="body2" color="success.main">{dept.doneTasks}</Typography>
+                      </Box>
+                      <Box display="flex" justifyContent="space-between" mb={1}>
+                        <Typography variant="body2" color="text.secondary">Pending:</Typography>
+                        <Typography variant="body2" color="warning.main">{dept.pendingTasks}</Typography>
+                      </Box>
+                      <Box display="flex" justifyContent="space-between" mb={1}>
+                        <Typography variant="body2" color="text.secondary">Delayed:</Typography>
+                        <Typography variant="body2" color="error.main">{dept.delayedTasks}</Typography>
+                      </Box>
+                      <Box display="flex" justifyContent="space-between" mb={1}>
+                        <Typography variant="body2" color="text.secondary">In Review:</Typography>
+                        <Typography variant="body2">{dept.inReviewTasks}</Typography>
+                      </Box>
+                      <Box display="flex" justifyContent="space-between">
+                        <Typography variant="body2" color="text.secondary">Working:</Typography>
+                        <Typography variant="body2">{dept.workingTasks}</Typography>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+          </Paper>
+        </>
+      )}
+
       {/* Stats Cards */}
-      <Box sx={{ 
-        display: 'flex', 
-        flexWrap: 'wrap', 
-        gap: 3, 
+      <Box sx={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: 3,
         mb: 4,
         '& > *': {
           flex: '1 1 250px',
@@ -130,7 +256,7 @@ const Dashboard: React.FC = () => {
             </Box>
           </CardContent>
         </Card>
-        
+
         <Card sx={{ height: '100%', borderRadius: 2, boxShadow: 3 }}>
           <CardContent>
             <Box display="flex" justifyContent="space-between" alignItems="center">
@@ -148,7 +274,7 @@ const Dashboard: React.FC = () => {
             </Box>
           </CardContent>
         </Card>
-        
+
         <Card sx={{ height: '100%', borderRadius: 2, boxShadow: 3 }}>
           <CardContent>
             <Box display="flex" justifyContent="space-between" alignItems="center">
@@ -166,7 +292,7 @@ const Dashboard: React.FC = () => {
             </Box>
           </CardContent>
         </Card>
-        
+
         <Card sx={{ height: '100%', borderRadius: 2, boxShadow: 3 }}>
           <CardContent>
             <Box display="flex" justifyContent="space-between" alignItems="center">
@@ -194,7 +320,7 @@ const Dashboard: React.FC = () => {
               <Typography variant="h6" component="h2">
                 Recent Tasks
               </Typography>
-              <Button 
+              <Button
                 component={Link}
                 to="/tasks"
                 size="small"
@@ -203,7 +329,7 @@ const Dashboard: React.FC = () => {
                 View All
               </Button>
             </Box>
-            
+
             {status === 'loading' ? (
               <Box display="flex" justifyContent="center" p={3}>
                 <CircularProgress color="primary" />
@@ -212,7 +338,7 @@ const Dashboard: React.FC = () => {
               <List sx={{ width: '100%', bgcolor: 'background.paper' }}>
                 {recentTasks.map((task) => (
                   <React.Fragment key={task._id}>
-                    <ListItem 
+                    <ListItem
                       alignItems="flex-start"
                       component={Link}
                       to={`/tasks/${task._id}`}
@@ -231,8 +357,8 @@ const Dashboard: React.FC = () => {
                       <ListItemText
                         primary={
                           <Box display="flex" justifyContent="space-between" alignItems="center">
-                            <Typography 
-                              variant="subtitle1" 
+                            <Typography
+                              variant="subtitle1"
                               component="span"
                               sx={{
                                 textDecoration: task.status === 'completed' ? 'line-through' : 'none',
@@ -241,8 +367,8 @@ const Dashboard: React.FC = () => {
                             >
                               {task.title}
                             </Typography>
-                            <Box 
-                              component="span" 
+                            <Box
+                              component="span"
                               sx={{
                                 width: 10,
                                 height: 10,
@@ -250,7 +376,7 @@ const Dashboard: React.FC = () => {
                                 bgcolor: getPriorityColor(task.priority),
                                 display: 'inline-block',
                                 ml: 1,
-                              }} 
+                              }}
                             />
                           </Box>
                         }
@@ -289,7 +415,7 @@ const Dashboard: React.FC = () => {
                 <Typography variant="body1" color="text.secondary" gutterBottom>
                   No tasks found
                 </Typography>
-                <Button 
+                <Button
                   component={Link}
                   to="/tasks/new"
                   variant="outlined"
@@ -363,7 +489,7 @@ const Dashboard: React.FC = () => {
               <List>
                 {upcomingDeadlines.map((task) => (
                   <React.Fragment key={task._id}>
-                    <ListItem 
+                    <ListItem
                       alignItems="flex-start"
                       component={Link}
                       to={`/tasks/${task._id}`}
@@ -379,8 +505,8 @@ const Dashboard: React.FC = () => {
                       <ListItemText
                         primary={
                           <Box display="flex" justifyContent="space-between" alignItems="center">
-                            <Typography 
-                              variant="subtitle2" 
+                            <Typography
+                              variant="subtitle2"
                               component="span"
                               sx={{
                                 fontWeight: 500,
@@ -388,8 +514,8 @@ const Dashboard: React.FC = () => {
                             >
                               {task.title}
                             </Typography>
-                            <Typography 
-                              variant="caption" 
+                            <Typography
+                              variant="caption"
                               color="text.secondary"
                               sx={{
                                 bgcolor: 'action.selected',

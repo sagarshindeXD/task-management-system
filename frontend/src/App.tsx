@@ -95,10 +95,10 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   if (loading) {
     return (
-      <Box 
-        display="flex" 
-        justifyContent="center" 
-        alignItems="center" 
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
         minHeight="100vh"
       >
         <Box>Loading...</Box>
@@ -114,12 +114,24 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+// Role-based Route Component
+const RoleBasedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user } = useAuth();
+
+  // Redirect based on user role
+  if (user?.role === 'admin') {
+    return <Navigate to="/dashboard" replace />;
+  } else {
+    return <Navigate to="/tasks" replace />;
+  }
+};
+
 // Public Route Component
 const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAuth();
 
   if (user) {
-    return <Navigate to="/dashboard" replace />;
+    return <RoleBasedRoute><div /></RoleBasedRoute>;
   }
 
   return <>{children}</>;
@@ -161,7 +173,7 @@ const AppContent = () => {
             </ProtectedRoute>
           }
         >
-          <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route index element={<RoleBasedRoute><div /></RoleBasedRoute>} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="tasks" element={<Tasks />} />
           <Route path="tasks/new" element={<NewTask />} />
