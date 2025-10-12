@@ -128,7 +128,6 @@ export const fetchDashboardMetrics = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     // For now, return null since the endpoint doesn't exist on the backend
     // TODO: Implement this endpoint on the backend
-    console.warn('Dashboard metrics endpoint not available, using fallback');
     return null;
   }
 );
@@ -268,16 +267,16 @@ export const createTask = createAsyncThunk<Task, Partial<Task>, { state: RootSta
         status: 'todo' // Ensure status is always set
       };
 
-      console.log('Sending task data to server:', JSON.stringify(taskPayload, null, 2));
+      // console.log('Sending task data to server:', JSON.stringify(taskPayload, null, 2));
 
       const response = await api.post<{ data: { task: Task } }>('/tasks', taskPayload);
       
       if (!response?.data?.data?.task) {
-        console.error('Invalid response format from server:', response?.data);
+        // console.error('Invalid response format from server:', response?.data);
         throw new Error('Invalid response from server');
       }
       
-      console.log('Task created successfully:', response.data.data.task);
+      // console.log('Task created successfully:', response.data.data.task);
       
       // After successful task creation, refresh the task lists
       await Promise.all([
@@ -298,16 +297,16 @@ export const createTask = createAsyncThunk<Task, Partial<Task>, { state: RootSta
       
       return response.data.data.task;
     } catch (error: any) {
-      console.error('Error in createTask:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-        config: {
-          url: error.config?.url,
-          method: error.config?.method,
-          data: error.config?.data,
-        }
-      });
+      // console.error('Error in createTask:', {
+      //   message: error.message,
+      //   response: error.response?.data,
+      //   status: error.response?.status,
+      //   config: {
+      //     url: error.config?.url,
+      //     method: error.config?.method,
+      //     data: error.config?.data,
+      //   }
+      // });
 
       const errorMessage = error.response?.data?.message ||
                          error.response?.data?.error?.message ||
@@ -397,7 +396,7 @@ const taskSlice = createSlice({
         state.tasks = action.payload.data.tasks;
         state.total = action.payload.total || action.payload.data.tasks.length;
       } else {
-        console.warn('Unexpected response format:', action.payload);
+        // console.warn('Unexpected response format:', action.payload);
       }
       state.error = null;
     });
