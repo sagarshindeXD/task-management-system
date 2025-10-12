@@ -8,8 +8,8 @@ console.log('Environment variables:', {
   REACT_APP_API_URL: process.env.REACT_APP_API_URL
 });
 
-// Force the correct API URL
-const API_URL = process.env.REACT_APP_API_URL || 'https://task-management-system-rimh.onrender.com';
+// Force the correct API URL - override any deployment config issues
+const API_URL = 'https://task-management-system-rimh.onrender.com';
 const baseURL = `${API_URL}/api`;
 
 console.log('Using API base URL:', baseURL);

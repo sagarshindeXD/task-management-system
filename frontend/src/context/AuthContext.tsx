@@ -4,7 +4,7 @@ import { getMe, selectCurrentUser, selectIsAuthenticated, selectAuthStatus } fro
 import { RootState } from '../store/store';
 
 // Define API base URL
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://task-management-system-rimh.onrender.com/api';
+const API_BASE_URL = 'https://task-management-system-rimh.onrender.com/api';
 console.log('Using API base URL:', API_BASE_URL);
 
 type AuthContextType = {
