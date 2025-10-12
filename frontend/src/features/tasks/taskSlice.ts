@@ -150,6 +150,7 @@ export const fetchDashboardMetrics = createAsyncThunk(
       }>('/tasks/dashboard-metrics');
       return response.data;
     } catch (error: any) {
+      console.warn('Dashboard metrics endpoint not available, using fallback');
       // If endpoint doesn't exist, return null instead of rejecting
       if (error.response?.status === 404 || error.response?.status === 500) {
         return null;

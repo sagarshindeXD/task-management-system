@@ -103,8 +103,8 @@ const Tasks: React.FC = () => {
         if (state.auth.isAuthenticated) {
           await dispatch(fetchAssignedTasks() as any);
           // These endpoints may not exist on backend yet, but thunks handle errors gracefully
-          await dispatch(fetchMyCompletedTasks() as any);
-          await dispatch(fetchTeamTasks() as any);
+          await dispatch(fetchMyCompletedTasks() as any).unwrap().catch(() => {});
+          await dispatch(fetchTeamTasks() as any).unwrap().catch(() => {});
         }
       } catch (error) {
         console.error('Error fetching tasks:', error);
@@ -129,8 +129,8 @@ const Tasks: React.FC = () => {
         await dispatch(deleteTask(taskId)).unwrap();
         // Refresh data after deletion
         await dispatch(fetchAssignedTasks() as any);
-        await dispatch(fetchMyCompletedTasks() as any);
-        await dispatch(fetchTeamTasks() as any);
+        await dispatch(fetchMyCompletedTasks() as any).unwrap().catch(() => {});
+        await dispatch(fetchTeamTasks() as any).unwrap().catch(() => {});
       } catch (error) {
         console.error('Failed to delete task:', error);
       }
