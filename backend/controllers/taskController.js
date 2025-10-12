@@ -206,76 +206,61 @@ exports.updateTaskStatus = catchAsync(async (req, res, next) => {
 // @route   POST /api/tasks
 // @access  Private
 exports.createTask = catchAsync(async (req, res, next) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-  
   try {
-    const { assignedTo, ...taskData } = req.body;
-    
-    // Add current user as creator
-    taskData.createdBy = req.user.id;
-    
-    // Process assigned users
-    if (!assignedTo || (Array.isArray(assignedTo) && assignedTo.length === 0)) {
-      throw new AppError('At least one assignee is required', 400);
+    const { title, description, priority, status, dueDate, assignedTo, client, department, assignDate, labels } = req.body;
+
+    // Validate required fields
+    if (!title) {
+      return next(new AppError('Task title is required', 400));
     }
 
-    // Convert to array if it's a single ID
-    const assigneeIds = Array.isArray(assignedTo) ? assignedTo : [assignedTo];
-    
-    // Convert all IDs to strings for consistent comparison
-    const assigneeIdStrings = assigneeIds.map(id => id.toString().trim());
-    
-    // Log the IDs for debugging
-    console.log('Looking for users with IDs:', assigneeIdStrings);
-    
-    // Verify all users exist
-    const users = await User.find({ 
-      _id: { $in: assigneeIdStrings } 
-    }).session(session);
-    
-    // Log found users for debugging
-    console.log('Found users:', users.map(u => ({
-      _id: u._id.toString(),
-      name: u.name,
-      email: u.email
-    })));
-    
-    if (users.length !== assigneeIdStrings.length) {
-      const foundIds = users.map(u => u._id.toString());
-      const missingIds = assigneeIdStrings.filter(id => !foundIds.includes(id));
-      
-      throw new AppError(`One or more assigned users do not exist. Missing IDs: ${missingIds.join(', ')}`, 400);
+    if (!client) {
+      return next(new AppError('Client is required', 400));
     }
-    
-    // Use the user objects from the database to ensure we have the correct ObjectIds
-    const assignedUsers = users.map(user => user._id);
-    
-    // Create task with assigned users
+
+    // Process assigned users - simplified approach
+    let assignedUsers = [];
+
+    if (assignedTo) {
+      const assigneeIds = Array.isArray(assignedTo) ? assignedTo : [assignedTo];
+
+      // Validate that users exist (without complex transaction logic)
+      const users = await User.find({
+        _id: { $in: assigneeIds }
+      });
+
+      if (users.length !== assigneeIds.length) {
+        const foundIds = users.map(u => u._id.toString());
+        const missingIds = assigneeIds.filter(id => !foundIds.includes(id.toString()));
+        return next(new AppError(`One or more assigned users do not exist. Missing IDs: ${missingIds.join(', ')}`, 400));
+      }
+
+      assignedUsers = users.map(user => user._id);
+    }
+
+    // Create task with all provided data
     const taskDataToSave = {
-      ...taskData,
+      title,
+      description,
+      priority,
+      status: status || 'todo',
+      dueDate,
+      createdBy: req.user.id,
       assignedTo: assignedUsers,
-      status: taskData.status || 'todo'
+      client,
+      department: department || 'General',
+      assignDate: assignDate || new Date(),
+      assignedBy: req.user.id, // Always use the current user as the assigner
+      labels: labels || []
     };
-    
-    console.log('Creating task with data:', JSON.stringify(taskDataToSave, null, 2));
-    
-    const task = new Task(taskDataToSave);
-    
-    await task.save({ session });
-    
+
+    const task = await Task.create(taskDataToSave);
+
     // Populate the task with user data
     const populatedTask = await Task.findById(task._id)
       .populate('assignedTo', 'name email')
       .populate('createdBy', 'name email')
-      .session(session);
-    
-    if (!populatedTask) {
-      throw new AppError('Error creating task', 500);
-    }
-    
-    await session.commitTransaction();
-    session.endSession();
+      .populate('client', 'name');
 
     res.status(201).json({
       status: 'success',
@@ -284,18 +269,18 @@ exports.createTask = catchAsync(async (req, res, next) => {
       }
     });
   } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
-    console.error('Error in createTask:', error);
-    
+    console.error('Error creating task:', error);
+
     if (error.name === 'ValidationError') {
-      const messages = error.errors ? 
-        Object.values(error.errors).map(val => val.message) : 
-        [error.message];
+      const messages = Object.values(error.errors).map(val => val.message);
       return next(new AppError(`Validation error: ${messages.join('. ')}`, 400));
     }
-    
-    next(new AppError(error.message || 'Failed to create task', error.statusCode || 500));
+
+    if (error.code === 11000) {
+      return next(new AppError('Duplicate task code', 400));
+    }
+
+    next(new AppError(error.message || 'Failed to create task', 500));
   }
 });
 

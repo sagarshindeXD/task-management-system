@@ -497,10 +497,12 @@ const taskSlice = createSlice({
       .addCase(createTask.rejected, (state, action) => {
         state.status = 'failed';
         state.error = action.payload as string || 'Failed to create task';
-        // Reset status to idle after a short delay to clear the error state
+        // Reset status after a delay to clear error state
         setTimeout(() => {
-          state.status = 'idle';
-        }, 2000);
+          if (state.status === 'failed') {
+            state.status = 'idle';
+          }
+        }, 3000);
       })
       // Update Task
       .addCase(updateTask.fulfilled, (state, action: PayloadAction<Task>) => {
