@@ -102,7 +102,7 @@ const Tasks: React.FC = () => {
         const state = store.getState() as RootState;
         if (state.auth.isAuthenticated) {
           await dispatch(fetchAssignedTasks() as any);
-          // These endpoints return fallback data since they don't exist on backend yet
+          // These endpoints return real data from backend now
           await dispatch(fetchMyCompletedTasks() as any);
           await dispatch(fetchTeamTasks() as any);
         }

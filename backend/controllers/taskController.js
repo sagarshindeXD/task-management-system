@@ -397,3 +397,145 @@ exports.getTaskStats = catchAsync(async (req, res, next) => {
     }
   });
 });
+
+// @desc    Get dashboard metrics for admin
+// @route   GET /api/tasks/dashboard-metrics
+// @access  Private (Admin only)
+exports.getDashboardMetrics = catchAsync(async (req, res, next) => {
+  // Get user performance metrics
+  const userStats = await Task.aggregate([
+    {
+      $group: {
+        _id: '$assignedTo',
+        tasksAssigned: { $sum: 1 },
+        doneTasks: { $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] } },
+        pendingTasks: { $sum: { $cond: [{ $eq: ['$status', 'todo'] }, 1, 0] } },
+        inProgressTasks: { $sum: { $cond: [{ $eq: ['$status', 'in-progress'] }, 1, 0] } }
+      }
+    },
+    {
+      $lookup: {
+        from: 'users',
+        localField: '_id',
+        foreignField: '_id',
+        as: 'user'
+      }
+    },
+    {
+      $unwind: '$user'
+    },
+    {
+      $project: {
+        _id: '$user._id',
+        name: '$user.name',
+        tasksAssigned: 1,
+        doneTasks: 1,
+        pendingTasks: 1,
+        delayedTasks: { $subtract: ['$tasksAssigned', { $add: ['$doneTasks', '$pendingTasks', '$inProgressTasks'] }] },
+        inReviewTasks: 0,
+        workingTasks: '$inProgressTasks',
+        performance: {
+          $multiply: [
+            { $divide: ['$doneTasks', { $cond: [{ $eq: ['$tasksAssigned', 0] }, 1, '$tasksAssigned'] }] },
+            100
+          ]
+        }
+      }
+    }
+  ]);
+
+  // Get department metrics
+  const departmentStats = await Task.aggregate([
+    {
+      $group: {
+        _id: '$department',
+        tasksAssigned: { $sum: 1 },
+        doneTasks: { $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] } },
+        pendingTasks: { $sum: { $cond: [{ $eq: ['$status', 'todo'] }, 1, 0] } },
+        inProgressTasks: { $sum: { $cond: [{ $eq: ['$status', 'in-progress'] }, 1, 0] } }
+      }
+    },
+    {
+      $project: {
+        name: '$_id',
+        tasksAssigned: 1,
+        doneTasks: 1,
+        pendingTasks: 1,
+        delayedTasks: { $subtract: ['$tasksAssigned', { $add: ['$doneTasks', '$pendingTasks', '$inProgressTasks'] }] },
+        inReviewTasks: 0,
+        workingTasks: '$inProgressTasks'
+      }
+    },
+    {
+      $match: { name: { $ne: null } }
+    }
+  ]);
+
+  res.status(200).json({
+    status: 'success',
+    users: userStats,
+    departments: departmentStats
+  });
+});
+
+// @desc    Get completed tasks for current user
+// @route   GET /api/tasks/my-completed
+// @access  Private
+exports.getMyCompletedTasks = catchAsync(async (req, res, next) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const skip = (page - 1) * limit;
+
+  const tasks = await Task.find({
+    assignedTo: req.user.id,
+    status: 'completed'
+  })
+  .populate('assignedTo', 'name email')
+  .populate('createdBy', 'name email')
+  .populate('assignedBy', 'name email')
+  .populate('client', 'name')
+  .sort('-updatedAt')
+  .skip(skip)
+  .limit(limit);
+
+  const total = await Task.countDocuments({
+    assignedTo: req.user.id,
+    status: 'completed'
+  });
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      tasks,
+      total
+    }
+  });
+});
+
+// @desc    Get all team tasks (for organization-wide view)
+// @route   GET /api/tasks/team-tasks
+// @access  Private
+exports.getTeamTasks = catchAsync(async (req, res, next) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const skip = (page - 1) * limit;
+
+  const tasks = await Task.find()
+  .populate('assignedTo', 'name email')
+  .populate('createdBy', 'name email')
+  .populate('assignedBy', 'name email')
+  .populate('client', 'name')
+  .sort('-updatedAt')
+  .skip(skip)
+  .limit(limit);
+
+  const total = await Task.countDocuments();
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      tasks,
+      total
+    }
+  });
+});

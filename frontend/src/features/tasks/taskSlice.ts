@@ -126,9 +126,37 @@ export const fetchAssignedTasks = createAsyncThunk<{ tasks: Task[]; total: numbe
 export const fetchDashboardMetrics = createAsyncThunk(
   'tasks/fetchDashboardMetrics',
   async (_, { rejectWithValue }) => {
-    // For now, return null since the endpoint doesn't exist on the backend
-    // TODO: Implement this endpoint on the backend
-    return null;
+    try {
+      const response = await api.get<{
+        users: Array<{
+          _id: string;
+          name: string;
+          tasksAssigned: number;
+          doneTasks: number;
+          pendingTasks: number;
+          delayedTasks: number;
+          inReviewTasks: number;
+          workingTasks: number;
+          performance: number;
+        }>;
+        departments: Array<{
+          name: string;
+          tasksAssigned: number;
+          doneTasks: number;
+          pendingTasks: number;
+          delayedTasks: number;
+          inReviewTasks: number;
+          workingTasks: number;
+        }>;
+      }>('/tasks/dashboard-metrics');
+      return response.data;
+    } catch (error: any) {
+      // If endpoint doesn't exist, return null instead of rejecting
+      if (error.response?.status === 404 || error.response?.status === 500) {
+        return null;
+      }
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch dashboard metrics');
+    }
   }
 );
 
@@ -137,9 +165,21 @@ export const fetchDashboardMetrics = createAsyncThunk(
 export const fetchMyCompletedTasks = createAsyncThunk<{ tasks: Task[]; total: number }, void, { state: RootState }>(
   'tasks/fetchMyCompletedTasks',
   async (_, { rejectWithValue }) => {
-    // For now, return empty data since the endpoint doesn't exist on the backend
-    // TODO: Implement this endpoint on the backend
-    return { tasks: [], total: 0 };
+    try {
+      const response = await api.get<{ data: { tasks: Task[]; total: number } }>(
+        '/tasks/my-completed'
+      );
+      return {
+        tasks: response.data.data.tasks,
+        total: response.data.data.total
+      };
+    } catch (error: any) {
+      // If endpoint doesn't exist, return empty data instead of rejecting
+      if (error.response?.status === 404 || error.response?.status === 500) {
+        return { tasks: [], total: 0 };
+      }
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch completed tasks');
+    }
   }
 );
 
@@ -148,9 +188,21 @@ export const fetchMyCompletedTasks = createAsyncThunk<{ tasks: Task[]; total: nu
 export const fetchTeamTasks = createAsyncThunk<{ tasks: Task[]; total: number }, void, { state: RootState }>(
   'tasks/fetchTeamTasks',
   async (_, { rejectWithValue }) => {
-    // For now, return empty data since the endpoint doesn't exist on the backend
-    // TODO: Implement this endpoint on the backend
-    return { tasks: [], total: 0 };
+    try {
+      const response = await api.get<{ data: { tasks: Task[]; total: number } }>(
+        '/tasks/team-tasks'
+      );
+      return {
+        tasks: response.data.data.tasks,
+        total: response.data.data.total
+      };
+    } catch (error: any) {
+      // If endpoint doesn't exist, return empty data instead of rejecting
+      if (error.response?.status === 404 || error.response?.status === 500) {
+        return { tasks: [], total: 0 };
+      }
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch team tasks');
+    }
   }
 );
 
