@@ -33,7 +33,6 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
   const { isAuthenticated, status, error } = useAppSelector((state) => state.auth);
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
 
   // Redirect if already logged in
   useEffect(() => {
@@ -51,12 +50,8 @@ const Login: React.FC = () => {
     onSubmit: async (values, { setSubmitting, setFieldError }) => {
       try {
         await dispatch(login({ email: values.email, password: values.password })).unwrap();
-        // If remember me is checked, the token is already stored in localStorage by the authSlice
-        if (!rememberMe) {
-          // If not remember me, we'll handle the session differently (e.g., sessionStorage)
-          // This is just an example, you might want to implement this based on your needs
-          console.log('Not remembering user session');
-        }
+        // The token is already stored in localStorage by the authSlice
+        // No need to handle rememberMe differently as the token persists the session
       } catch (error: any) {
         setFieldError('email', ' '); // Clear any previous email error
         setFieldError('password', error || 'Login failed. Please check your credentials.');
@@ -154,23 +149,11 @@ const Login: React.FC = () => {
         sx={{
           width: '100%',
           display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
+          justifyContent: 'flex-end',
           mt: 1,
           mb: 2,
         }}
       >
-        <FormControlLabel
-          control={
-            <Checkbox
-              value="remember"
-              color="primary"
-              checked={rememberMe}
-              onChange={(e) => setRememberMe(e.target.checked)}
-            />
-          }
-          label="Remember me"
-        />
         <Link
           component={RouterLink}
           to="/forgot-password"

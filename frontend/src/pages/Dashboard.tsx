@@ -55,7 +55,9 @@ const Dashboard: React.FC = () => {
 
     // Fetch dashboard metrics if user is admin
     if (isAdmin) {
-      dispatch(fetchDashboardMetrics());
+      dispatch(fetchDashboardMetrics()).catch((error) => {
+        console.warn('Dashboard metrics not available:', error);
+      });
     }
   }, [dispatch, isAdmin]);
 
@@ -123,108 +125,136 @@ const Dashboard: React.FC = () => {
       </Box>
 
       {/* Admin Dashboard Metrics */}
-      {isAdmin && dashboardMetrics && (
+      {isAdmin && (
         <>
           {/* User Metrics */}
-          <Paper sx={{ p: 3, mb: 4, borderRadius: 2 }}>
-            <Box display="flex" alignItems="center" mb={3}>
-              <PeopleIcon sx={{ mr: 2, color: 'primary.main' }} />
-              <Typography variant="h5" component="h2">
-                User Performance
-              </Typography>
-            </Box>
+          {dashboardMetrics?.users && dashboardMetrics.users.length > 0 ? (
+            <Paper sx={{ p: 3, mb: 4, borderRadius: 2 }}>
+              <Box display="flex" alignItems="center" mb={3}>
+                <PeopleIcon sx={{ mr: 2, color: 'primary.main' }} />
+                <Typography variant="h5" component="h2">
+                  User Performance
+                </Typography>
+              </Box>
 
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>User</TableCell>
-                    <TableCell align="center">Assigned</TableCell>
-                    <TableCell align="center">Done</TableCell>
-                    <TableCell align="center">Pending</TableCell>
-                    <TableCell align="center">Delayed</TableCell>
-                    <TableCell align="center">In Review</TableCell>
-                    <TableCell align="center">Working</TableCell>
-                    <TableCell align="center">Performance</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {dashboardMetrics.users.map((user) => (
-                    <TableRow key={user._id}>
-                      <TableCell component="th" scope="row">
-                        {user.name}
-                      </TableCell>
-                      <TableCell align="center">{user.tasksAssigned}</TableCell>
-                      <TableCell align="center">{user.doneTasks}</TableCell>
-                      <TableCell align="center">{user.pendingTasks}</TableCell>
-                      <TableCell align="center">{user.delayedTasks}</TableCell>
-                      <TableCell align="center">{user.inReviewTasks}</TableCell>
-                      <TableCell align="center">{user.workingTasks}</TableCell>
-                      <TableCell align="center">
-                        <Box display="flex" alignItems="center">
-                          <LinearProgress
-                            variant="determinate"
-                            value={user.performance}
-                            sx={{ width: 60, mr: 1 }}
-                          />
-                          <Typography variant="body2">{Math.round(user.performance)}%</Typography>
-                        </Box>
-                      </TableCell>
+              <TableContainer>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>User</TableCell>
+                      <TableCell align="center">Assigned</TableCell>
+                      <TableCell align="center">Done</TableCell>
+                      <TableCell align="center">Pending</TableCell>
+                      <TableCell align="center">Delayed</TableCell>
+                      <TableCell align="center">In Review</TableCell>
+                      <TableCell align="center">Working</TableCell>
+                      <TableCell align="center">Performance</TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Paper>
+                  </TableHead>
+                  <TableBody>
+                    {dashboardMetrics.users.map((user) => (
+                      <TableRow key={user._id}>
+                        <TableCell component="th" scope="row">
+                          {user.name}
+                        </TableCell>
+                        <TableCell align="center">{user.tasksAssigned}</TableCell>
+                        <TableCell align="center">{user.doneTasks}</TableCell>
+                        <TableCell align="center">{user.pendingTasks}</TableCell>
+                        <TableCell align="center">{user.delayedTasks}</TableCell>
+                        <TableCell align="center">{user.inReviewTasks}</TableCell>
+                        <TableCell align="center">{user.workingTasks}</TableCell>
+                        <TableCell align="center">
+                          <Box display="flex" alignItems="center">
+                            <LinearProgress
+                              variant="determinate"
+                              value={user.performance}
+                              sx={{ width: 60, mr: 1 }}
+                            />
+                            <Typography variant="body2">{Math.round(user.performance)}%</Typography>
+                          </Box>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Paper>
+          ) : (
+            <Paper sx={{ p: 3, mb: 4, borderRadius: 2 }}>
+              <Box display="flex" alignItems="center" mb={3}>
+                <PeopleIcon sx={{ mr: 2, color: 'primary.main' }} />
+                <Typography variant="h5" component="h2">
+                  User Performance
+                </Typography>
+              </Box>
+              <Typography variant="body1" color="text.secondary" textAlign="center" py={4}>
+                User performance data is currently unavailable.
+              </Typography>
+            </Paper>
+          )}
 
           {/* Department Metrics */}
-          <Paper sx={{ p: 3, mb: 4, borderRadius: 2 }}>
-            <Box display="flex" alignItems="center" mb={3}>
-              <BusinessIcon sx={{ mr: 2, color: 'primary.main' }} />
-              <Typography variant="h5" component="h2">
-                Department Overview
-              </Typography>
-            </Box>
+          {dashboardMetrics?.departments && dashboardMetrics.departments.length > 0 ? (
+            <Paper sx={{ p: 3, mb: 4, borderRadius: 2 }}>
+              <Box display="flex" alignItems="center" mb={3}>
+                <BusinessIcon sx={{ mr: 2, color: 'primary.main' }} />
+                <Typography variant="h5" component="h2">
+                  Department Overview
+                </Typography>
+              </Box>
 
-            <Grid container spacing={3}>
-              {dashboardMetrics.departments.map((dept) => (
-                <Grid item xs={12} sm={6} md={4} key={dept.name}>
-                  <Card sx={{ height: '100%', borderRadius: 2 }}>
-                    <CardHeader
-                      title={dept.name}
-                      titleTypographyProps={{ variant: 'h6' }}
-                    />
-                    <CardContent>
-                      <Box display="flex" justifyContent="space-between" mb={1}>
-                        <Typography variant="body2" color="text.secondary">Assigned:</Typography>
-                        <Typography variant="body2">{dept.tasksAssigned}</Typography>
-                      </Box>
-                      <Box display="flex" justifyContent="space-between" mb={1}>
-                        <Typography variant="body2" color="text.secondary">Done:</Typography>
-                        <Typography variant="body2" color="success.main">{dept.doneTasks}</Typography>
-                      </Box>
-                      <Box display="flex" justifyContent="space-between" mb={1}>
-                        <Typography variant="body2" color="text.secondary">Pending:</Typography>
-                        <Typography variant="body2" color="warning.main">{dept.pendingTasks}</Typography>
-                      </Box>
-                      <Box display="flex" justifyContent="space-between" mb={1}>
-                        <Typography variant="body2" color="text.secondary">Delayed:</Typography>
-                        <Typography variant="body2" color="error.main">{dept.delayedTasks}</Typography>
-                      </Box>
-                      <Box display="flex" justifyContent="space-between" mb={1}>
-                        <Typography variant="body2" color="text.secondary">In Review:</Typography>
-                        <Typography variant="body2">{dept.inReviewTasks}</Typography>
-                      </Box>
-                      <Box display="flex" justifyContent="space-between">
-                        <Typography variant="body2" color="text.secondary">Working:</Typography>
-                        <Typography variant="body2">{dept.workingTasks}</Typography>
-                      </Box>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              ))}
-            </Grid>
-          </Paper>
+              <Grid container spacing={3}>
+                {dashboardMetrics.departments.map((dept) => (
+                  <Grid item xs={12} sm={6} md={4} key={dept.name}>
+                    <Card sx={{ height: '100%', borderRadius: 2 }}>
+                      <CardHeader
+                        title={dept.name}
+                        titleTypographyProps={{ variant: 'h6' }}
+                      />
+                      <CardContent>
+                        <Box display="flex" justifyContent="space-between" mb={1}>
+                          <Typography variant="body2" color="text.secondary">Assigned:</Typography>
+                          <Typography variant="body2">{dept.tasksAssigned}</Typography>
+                        </Box>
+                        <Box display="flex" justifyContent="space-between" mb={1}>
+                          <Typography variant="body2" color="text.secondary">Done:</Typography>
+                          <Typography variant="body2" color="success.main">{dept.doneTasks}</Typography>
+                        </Box>
+                        <Box display="flex" justifyContent="space-between" mb={1}>
+                          <Typography variant="body2" color="text.secondary">Pending:</Typography>
+                          <Typography variant="body2" color="warning.main">{dept.pendingTasks}</Typography>
+                        </Box>
+                        <Box display="flex" justifyContent="space-between" mb={1}>
+                          <Typography variant="body2" color="text.secondary">Delayed:</Typography>
+                          <Typography variant="body2" color="error.main">{dept.delayedTasks}</Typography>
+                        </Box>
+                        <Box display="flex" justifyContent="space-between" mb={1}>
+                          <Typography variant="body2" color="text.secondary">In Review:</Typography>
+                          <Typography variant="body2">{dept.inReviewTasks}</Typography>
+                        </Box>
+                        <Box display="flex" justifyContent="space-between">
+                          <Typography variant="body2" color="text.secondary">Working:</Typography>
+                          <Typography variant="body2">{dept.workingTasks}</Typography>
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+            </Paper>
+          ) : (
+            <Paper sx={{ p: 3, mb: 4, borderRadius: 2 }}>
+              <Box display="flex" alignItems="center" mb={3}>
+                <BusinessIcon sx={{ mr: 2, color: 'primary.main' }} />
+                <Typography variant="h5" component="h2">
+                  Department Overview
+                </Typography>
+              </Box>
+              <Typography variant="body1" color="text.secondary" textAlign="center" py={4}>
+                Department data is currently unavailable.
+              </Typography>
+            </Paper>
+          )}
         </>
       )}
 

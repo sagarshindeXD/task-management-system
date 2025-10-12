@@ -48,7 +48,7 @@ const initialState: AuthState = {
   user: null,
   users: [],
   token: localStorage.getItem('token'),
-  isAuthenticated: false,
+  isAuthenticated: !!localStorage.getItem('token'), // Set to true if token exists
   status: 'idle',
   error: null,
 };

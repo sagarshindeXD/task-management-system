@@ -102,8 +102,17 @@ const Tasks: React.FC = () => {
         const state = store.getState() as RootState;
         if (state.auth.isAuthenticated) {
           await dispatch(fetchAssignedTasks() as any);
-          await dispatch(fetchMyCompletedTasks() as any);
-          await dispatch(fetchTeamTasks() as any);
+          // Fetch additional data if endpoints are available
+          try {
+            await dispatch(fetchMyCompletedTasks() as any);
+          } catch (error) {
+            console.warn('My completed tasks endpoint not available:', error);
+          }
+          try {
+            await dispatch(fetchTeamTasks() as any);
+          } catch (error) {
+            console.warn('Team tasks endpoint not available:', error);
+          }
         }
       } catch (error) {
         console.error('Error fetching tasks:', error);
@@ -127,9 +136,13 @@ const Tasks: React.FC = () => {
       try {
         await dispatch(deleteTask(taskId)).unwrap();
         // Refresh data after deletion
-        await dispatch(fetchAssignedTasks() as any);
-        await dispatch(fetchMyCompletedTasks() as any);
-        await dispatch(fetchTeamTasks() as any);
+        try {
+          await dispatch(fetchAssignedTasks() as any);
+          await dispatch(fetchMyCompletedTasks() as any);
+          await dispatch(fetchTeamTasks() as any);
+        } catch (error) {
+          console.warn('Error refreshing task data after deletion:', error);
+        }
       } catch (error) {
         console.error('Failed to delete task:', error);
       }
