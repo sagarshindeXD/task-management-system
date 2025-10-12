@@ -9,7 +9,7 @@ console.log('Environment variables:', {
 });
 
 // Force the correct API URL
-const API_URL = 'https://task-management-system-rimh.onrender.com';
+const API_URL = process.env.REACT_APP_API_URL || 'https://task-management-system-rimh.onrender.com';
 const baseURL = `${API_URL}/api`;
 
 console.log('Using API base URL:', baseURL);
