@@ -55,9 +55,7 @@ const Dashboard: React.FC = () => {
 
     // Fetch dashboard metrics if user is admin
     if (isAdmin) {
-      dispatch(fetchDashboardMetrics()).catch((error) => {
-        console.warn('Dashboard metrics not available:', error);
-      });
+      dispatch(fetchDashboardMetrics());
     }
   }, [dispatch, isAdmin]);
 

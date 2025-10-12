@@ -150,6 +150,10 @@ export const fetchDashboardMetrics = createAsyncThunk(
       }>('/tasks/dashboard-metrics');
       return response.data;
     } catch (error: any) {
+      // If endpoint doesn't exist, return null instead of rejecting
+      if (error.response?.status === 404 || error.response?.status === 500) {
+        return null;
+      }
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch dashboard metrics');
     }
   }
@@ -168,6 +172,10 @@ export const fetchMyCompletedTasks = createAsyncThunk<{ tasks: Task[]; total: nu
         total: response.data.data.total
       };
     } catch (error: any) {
+      // If endpoint doesn't exist, return empty data instead of rejecting
+      if (error.response?.status === 404 || error.response?.status === 500) {
+        return { tasks: [], total: 0 };
+      }
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch completed tasks');
     }
   }
@@ -186,6 +194,10 @@ export const fetchTeamTasks = createAsyncThunk<{ tasks: Task[]; total: number },
         total: response.data.data.total
       };
     } catch (error: any) {
+      // If endpoint doesn't exist, return empty data instead of rejecting
+      if (error.response?.status === 404 || error.response?.status === 500) {
+        return { tasks: [], total: 0 };
+      }
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch team tasks');
     }
   }
