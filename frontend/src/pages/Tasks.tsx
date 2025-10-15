@@ -12,6 +12,8 @@ import {
   selectTaskError,
   selectMyCompletedTasks,
   selectTeamTasks,
+  selectAllTasks,
+  updateTaskStatus,
 } from '../features/tasks/taskSlice';
 import { selectCurrentUser } from '../features/auth/authSlice';
 import {
@@ -19,27 +21,28 @@ import {
   Typography,
   Button,
   Paper,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemSecondaryAction,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Select,
+  MenuItem,
+  FormControl,
   IconButton,
-  Divider,
-  Chip,
   CircularProgress,
   Tabs,
   Tab,
   Alert,
   Tooltip,
+  Chip,
 } from '@mui/material';
 import {
   Add as AddIcon,
-  MoreVert as MoreVertIcon,
-  CheckCircle as CompletedIcon,
-  PendingActions as InProgressIcon,
-  AssignmentLate as TodoIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
+  MoreVert as MoreVertIcon,
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 
@@ -90,10 +93,10 @@ const Tasks: React.FC = () => {
   const error = useAppSelector(selectTaskError);
   const myCompletedTasks = useAppSelector(selectMyCompletedTasks);
   const teamTasks = useAppSelector(selectTeamTasks);
+  const assignedTasks = useAppSelector(selectAllTasks); // Get the tasks from state
 
   // Local state for tabs
   const [activeTab, setActiveTab] = useState(0);
-  const [selectedTask, setSelectedTask] = useState<string | null>(null);
 
   // Fetch data on component mount
   useEffect(() => {
@@ -120,7 +123,6 @@ const Tasks: React.FC = () => {
 
   const handleEditTask = (taskId: string) => {
     navigate(`/tasks/${taskId}/edit`);
-    setSelectedTask(null);
   };
 
   const handleDeleteTask = async (taskId: string) => {
@@ -135,21 +137,49 @@ const Tasks: React.FC = () => {
         console.error('Failed to delete task:', error);
       }
     }
-    setSelectedTask(null);
   };
 
-  const getStatusIcon = (status: string) => {
+  const getStatusValue = (status: string) => {
     switch (status) {
       case 'completed':
-        return <CompletedIcon color="success" fontSize="small" />;
+        return 'done';
       case 'in-progress':
-        return <InProgressIcon color="primary" fontSize="small" />;
+        return 'working';
+      case 'todo':
+        return 'pending';
       default:
-        return <TodoIcon color="action" fontSize="small" />;
+        return 'pending';
     }
   };
 
-  const renderTaskList = (tasks: any[], title: string, emptyMessage: string) => {
+  const getStatusFromValue = (value: string) => {
+    switch (value) {
+      case 'done':
+        return 'completed';
+      case 'working':
+        return 'in-progress';
+      case 'in-review':
+        return 'in-progress'; // Map to in-progress for now
+      case 'pending':
+        return 'todo';
+      default:
+        return 'todo';
+    }
+  };
+
+  const handleStatusChange = async (taskId: string, newStatus: string) => {
+    try {
+      await dispatch(updateTaskStatus({ id: taskId, status: getStatusFromValue(newStatus) })).unwrap();
+      // Refresh data after status update
+      await dispatch(fetchAssignedTasks() as any);
+      await dispatch(fetchMyCompletedTasks() as any);
+      await dispatch(fetchTeamTasks() as any);
+    } catch (error: any) {
+      console.error('Failed to update task status:', error);
+    }
+  };
+
+  const renderTaskTable = (tasks: any[], title: string, emptyMessage: string) => {
     if (status === 'loading' && tasks.length === 0) {
       return (
         <Box display="flex" justifyContent="center" p={4}>
@@ -172,168 +202,101 @@ const Tasks: React.FC = () => {
     }
 
     return (
-      <Paper sx={{ borderRadius: 2, overflow: 'hidden' }}>
-        <List disablePadding>
-          {tasks.map((task, index) => (
-            <React.Fragment key={task._id}>
-              <ListItem
-                alignItems="flex-start"
-                sx={{
-                  '&:hover': {
-                    backgroundColor: 'action.hover',
-                  },
-                }}
-                secondaryAction={
-                  <IconButton
-                    edge="end"
-                    aria-label="more"
-                    onClick={() => setSelectedTask(task._id)}
+      <TableContainer component={Paper} sx={{ borderRadius: 2 }}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>Task</TableCell>
+              <TableCell>Client</TableCell>
+              <TableCell>Department</TableCell>
+              <TableCell>Assigned By</TableCell>
+              <TableCell>Assigned To</TableCell>
+              <TableCell>Assign Date</TableCell>
+              <TableCell>Due Date</TableCell>
+              <TableCell>Status</TableCell>
+              <TableCell>Actions</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {tasks.map((task) => (
+              <TableRow key={task._id} hover>
+                <TableCell>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      maxWidth: 200,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
                   >
-                    <MoreVertIcon />
-                  </IconButton>
-                }
-              >
-                <ListItemText
-                  primary={
-                    <Box display="flex" alignItems="center" flexWrap="wrap">
-                      <Typography
-                        component="span"
-                        variant="subtitle1"
-                        sx={{
-                          mr: 1,
-                          textDecoration: task.status === 'completed' ? 'line-through' : 'none',
-                          color: task.status === 'completed' ? 'text.secondary' : 'text.primary',
-                        }}
-                      >
-                        {task.title}
-                      </Typography>
-
-                      <Box display="flex" alignItems="center" flexWrap="wrap" gap={1}>
-                        <Chip
-                          label={task.status.charAt(0).toUpperCase() + task.status.slice(1)}
-                          size="small"
-                          variant="outlined"
-                          sx={{
-                            height: 20,
-                            fontSize: '0.65rem',
-                            ...(task.status === 'completed' && {
-                              borderColor: 'success.main',
-                              color: 'success.main',
-                              bgcolor: 'success.light',
-                            }),
-                            ...(task.status === 'in-progress' && {
-                              borderColor: 'primary.main',
-                              color: 'primary.main',
-                              bgcolor: 'primary.light',
-                            }),
-                          }}
-                        />
-
-                        {task.dueDate && (
-                          <Chip
-                            icon={
-                              new Date(task.dueDate) < new Date() && task.status !== 'completed' ? (
-                                <Tooltip title="Overdue">
-                                  <span style={{ display: 'flex' }}>⚠️</span>
-                                </Tooltip>
-                              ) : undefined
-                            }
-                            label={format(new Date(task.dueDate), 'MMM d, yyyy')}
-                            size="small"
-                            variant="outlined"
-                            sx={{
-                              height: 20,
-                              fontSize: '0.65rem',
-                              ...(new Date(task.dueDate) < new Date() && task.status !== 'completed' && {
-                                borderColor: 'error.main',
-                                color: 'error.main',
-                                bgcolor: 'error.light',
-                              }),
-                            }}
-                          />
-                        )}
-                      </Box>
-                    </Box>
-                  }
-                  secondary={
-                    <Box>
-                      <Typography
-                        component="span"
-                        variant="body2"
-                        color="text.secondary"
-                        sx={{
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          ...(task.status === 'completed' && {
-                            textDecoration: 'line-through',
-                          }),
-                        }}
-                      >
-                        {task.description || 'No description'}
-                      </Typography>
-
-                      <Box display="flex" alignItems="center" mt={0.5}>
-                        <Typography
-                          variant="caption"
-                          color="text.secondary"
-                          sx={{ display: 'flex', alignItems: 'center' }}
-                        >
-                          Created: {format(new Date(task.createdAt), 'MMM d, yyyy')}
-                        </Typography>
-                      </Box>
-                    </Box>
-                  }
-                  onClick={() => navigate(`/tasks/${task._id}`)}
-                  sx={{ cursor: 'pointer' }}
-                />
-              </ListItem>
-
-              {index < tasks.length - 1 && <Divider component="li" />}
-            </React.Fragment>
-          ))}
-        </List>
-
-        {/* Task menu */}
-        {selectedTask && (
-          <Box
-            sx={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              bgcolor: 'rgba(0,0,0,0.5)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 1000,
-            }}
-            onClick={() => setSelectedTask(null)}
-          >
-            <Paper sx={{ p: 2, minWidth: 200 }}>
-              <Button
-                fullWidth
-                startIcon={<EditIcon />}
-                onClick={() => handleEditTask(selectedTask)}
-                sx={{ mb: 1 }}
-              >
-                Edit
-              </Button>
-              <Button
-                fullWidth
-                startIcon={<DeleteIcon />}
-                onClick={() => handleDeleteTask(selectedTask)}
-                color="error"
-              >
-                Delete
-              </Button>
-            </Paper>
-          </Box>
-        )}
-      </Paper>
+                    {task.title}
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  <Typography variant="body2">
+                    {typeof task.client === 'object' ? task.client.name : task.client || 'N/A'}
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  <Typography variant="body2">
+                    {task.department || 'N/A'}
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  <Typography variant="body2">
+                    {typeof task.assignedBy === 'object' ? task.assignedBy.name : task.assignedBy || 'N/A'}
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  <Typography variant="body2">
+                    {task.assignedTo?.join(', ') || 'N/A'}
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  <Typography variant="body2">
+                    {task.assignDate ? format(new Date(task.assignDate), 'MMM d, yyyy') : 'N/A'}
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  <Typography variant="body2">
+                    {task.dueDate ? format(new Date(task.dueDate), 'MMM d, yyyy') : 'N/A'}
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  <FormControl size="small" sx={{ minWidth: 120 }}>
+                    <Select
+                      value={getStatusValue(task.status)}
+                      onChange={(e) => handleStatusChange(task._id, e.target.value)}
+                      displayEmpty
+                      sx={{ fontSize: '0.875rem' }}
+                    >
+                      <MenuItem value="pending">Pending</MenuItem>
+                      <MenuItem value="working">Working</MenuItem>
+                      <MenuItem value="in-review">In Review</MenuItem>
+                      <MenuItem value="done">Done</MenuItem>
+                    </Select>
+                  </FormControl>
+                </TableCell>
+                <TableCell>
+                  <Box display="flex" gap={1}>
+                    <Tooltip title="Edit">
+                      <IconButton size="small" onClick={() => handleEditTask(task._id)}>
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Delete">
+                      <IconButton size="small" onClick={() => handleDeleteTask(task._id)} color="error">
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
     );
   };
 
@@ -391,8 +354,8 @@ const Tasks: React.FC = () => {
             <Typography variant="h6" gutterBottom>
               Assigned Tasks
             </Typography>
-            {renderTaskList(
-              [], // This would be populated with assigned tasks
+            {renderTaskTable(
+              assignedTasks,
               'Assigned Tasks',
               'No tasks have been assigned to you yet.'
             )}
@@ -400,7 +363,7 @@ const Tasks: React.FC = () => {
             <Typography variant="h6" gutterBottom sx={{ mt: 4 }}>
               Completed Tasks
             </Typography>
-            {renderTaskList(
+            {renderTaskTable(
               myCompletedTasks,
               'Completed Tasks',
               'You haven\'t completed any tasks yet.'
@@ -413,7 +376,7 @@ const Tasks: React.FC = () => {
             <Typography variant="h6" gutterBottom>
               Team Assigned Tasks
             </Typography>
-            {renderTaskList(
+            {renderTaskTable(
               teamTasks,
               'Team Tasks',
               'No team tasks found.'
@@ -422,8 +385,8 @@ const Tasks: React.FC = () => {
             <Typography variant="h6" gutterBottom sx={{ mt: 4 }}>
               Team Completed Tasks
             </Typography>
-            {renderTaskList(
-              [], // This would be populated with team completed tasks
+            {renderTaskTable(
+              [], // For now, we'll use empty array for team completed tasks
               'Team Completed Tasks',
               'No completed tasks in the team yet.'
             )}

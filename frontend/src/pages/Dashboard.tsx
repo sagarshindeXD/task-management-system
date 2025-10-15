@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../hooks/reduxHooks';
 import { fetchTasks, Task, fetchDashboardMetrics } from '../features/tasks/taskSlice';
 import { selectCurrentUser } from '../features/auth/authSlice';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import {
   Box,
@@ -46,6 +46,11 @@ const Dashboard: React.FC = () => {
   const theme = useTheme();
   const currentUser = useAppSelector(selectCurrentUser);
   const isAdmin = currentUser?.role === 'admin';
+
+  // Redirect non-admin users to tasks page
+  if (!isAdmin) {
+    return <Navigate to="/tasks" replace />;
+  }
 
   const { tasks, status } = useAppSelector((state) => state.tasks);
   const dashboardMetrics = useAppSelector((state) => state.tasks.dashboardMetrics);
@@ -197,59 +202,94 @@ const Dashboard: React.FC = () => {
               <Box display="flex" alignItems="center" mb={3}>
                 <BusinessIcon sx={{ mr: 2, color: 'primary.main' }} />
                 <Typography variant="h5" component="h2">
-                  Department Overview
+                  Department Performance Analysis
                 </Typography>
               </Box>
 
-              <Grid container spacing={3}>
-                {dashboardMetrics.departments.map((dept) => (
-                  <Grid item xs={12} sm={6} md={4} key={dept.name}>
-                    <Card sx={{ height: '100%', borderRadius: 2 }}>
-                      <CardHeader
-                        title={dept.name}
-                        titleTypographyProps={{ variant: 'h6' }}
-                      />
-                      <CardContent>
-                        <Box display="flex" justifyContent="space-between" mb={1}>
-                          <Typography variant="body2" color="text.secondary">Assigned:</Typography>
-                          <Typography variant="body2">{dept.tasksAssigned}</Typography>
-                        </Box>
-                        <Box display="flex" justifyContent="space-between" mb={1}>
-                          <Typography variant="body2" color="text.secondary">Done:</Typography>
-                          <Typography variant="body2" color="success.main">{dept.doneTasks}</Typography>
-                        </Box>
-                        <Box display="flex" justifyContent="space-between" mb={1}>
-                          <Typography variant="body2" color="text.secondary">Pending:</Typography>
-                          <Typography variant="body2" color="warning.main">{dept.pendingTasks}</Typography>
-                        </Box>
-                        <Box display="flex" justifyContent="space-between" mb={1}>
-                          <Typography variant="body2" color="text.secondary">Delayed:</Typography>
-                          <Typography variant="body2" color="error.main">{dept.delayedTasks}</Typography>
-                        </Box>
-                        <Box display="flex" justifyContent="space-between" mb={1}>
-                          <Typography variant="body2" color="text.secondary">In Review:</Typography>
-                          <Typography variant="body2">{dept.inReviewTasks}</Typography>
-                        </Box>
-                        <Box display="flex" justifyContent="space-between">
-                          <Typography variant="body2" color="text.secondary">Working:</Typography>
-                          <Typography variant="body2">{dept.workingTasks}</Typography>
-                        </Box>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                ))}
-              </Grid>
+              <TableContainer>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Department</TableCell>
+                      <TableCell align="center">Total Tasks</TableCell>
+                      <TableCell align="center">Completed</TableCell>
+                      <TableCell align="center">In Progress</TableCell>
+                      <TableCell align="center">Pending</TableCell>
+                      <TableCell align="center">Delayed</TableCell>
+                      <TableCell align="center">In Review</TableCell>
+                      <TableCell align="center">Completion Rate</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {dashboardMetrics.departments.map((dept) => {
+                      const totalTasks = dept.tasksAssigned;
+                      const completedTasks = dept.doneTasks;
+                      const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+                      return (
+                        <TableRow key={dept.name}>
+                          <TableCell component="th" scope="row">
+                            <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
+                              {dept.name}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="center">
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                              {totalTasks}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="center">
+                            <Typography variant="body2" color="success.main" sx={{ fontWeight: 500 }}>
+                              {completedTasks}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="center">
+                            <Typography variant="body2" color="primary.main" sx={{ fontWeight: 500 }}>
+                              {dept.workingTasks}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="center">
+                            <Typography variant="body2" color="warning.main" sx={{ fontWeight: 500 }}>
+                              {dept.pendingTasks}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="center">
+                            <Typography variant="body2" color="error.main" sx={{ fontWeight: 500 }}>
+                              {dept.delayedTasks}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="center">
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                              {dept.inReviewTasks}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="center">
+                            <Box display="flex" alignItems="center">
+                              <LinearProgress
+                                variant="determinate"
+                                value={completionRate}
+                                sx={{ width: 60, mr: 1 }}
+                              />
+                              <Typography variant="body2">{completionRate}%</Typography>
+                            </Box>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </TableContainer>
             </Paper>
           ) : (
             <Paper sx={{ p: 3, mb: 4, borderRadius: 2 }}>
               <Box display="flex" alignItems="center" mb={3}>
                 <BusinessIcon sx={{ mr: 2, color: 'primary.main' }} />
                 <Typography variant="h5" component="h2">
-                  Department Overview
+                  Department Performance Analysis
                 </Typography>
               </Box>
               <Typography variant="body1" color="text.secondary" textAlign="center" py={4}>
-                Department data is currently unavailable.
+                Department performance data is currently unavailable.
               </Typography>
             </Paper>
           )}

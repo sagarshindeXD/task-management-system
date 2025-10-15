@@ -87,16 +87,21 @@ export const login = createAsyncThunk<AuthResponse, LoginCredentials, { rejectVa
         email,
         password,
       });
-      
+
       // Save the token from login response
       const { token } = loginResponse.data;
-      localStorage.setItem('token', token);
-      
+      if (token) {
+        localStorage.setItem('token', token);
+        // Set token expiration time (24 hours from now)
+        const expirationTime = Date.now() + (24 * 60 * 60 * 1000);
+        localStorage.setItem('tokenExpiration', expirationTime.toString());
+      }
+
       // Then fetch the user's details
       try {
         const meResponse = await api.get<MeApiResponse>('/users/me');
         const userData = meResponse.data?.data?.user;
-        
+
         if (userData) {
           // Return the combined data
           return {
@@ -108,7 +113,7 @@ export const login = createAsyncThunk<AuthResponse, LoginCredentials, { rejectVa
         console.warn('Failed to fetch user details, using basic user info from login', meError);
         // If fetching user details fails, continue with the basic user info from login
       }
-      
+
       return loginResponse.data;
     } catch (error: any) {
       const message = error.response?.data?.message || 'Login failed';
@@ -169,6 +174,7 @@ const authSlice = createSlice({
   reducers: {
     logout: (state) => {
       localStorage.removeItem('token');
+      localStorage.removeItem('tokenExpiration');
       state.user = null;
       state.token = null;
       state.isAuthenticated = false;
@@ -177,6 +183,22 @@ const authSlice = createSlice({
     },
     clearError: (state) => {
       state.error = null;
+    },
+    // Check if token is expired
+    checkTokenExpiration: (state) => {
+      const expirationTime = localStorage.getItem('tokenExpiration');
+      if (expirationTime) {
+        const now = Date.now();
+        if (now > parseInt(expirationTime)) {
+          // Token is expired
+          localStorage.removeItem('token');
+          localStorage.removeItem('tokenExpiration');
+          state.user = null;
+          state.token = null;
+          state.isAuthenticated = false;
+          state.error = 'Session expired';
+        }
+      }
     },
   },
   extraReducers: (builder) => {
@@ -279,6 +301,12 @@ const authSlice = createSlice({
       // Delete User
       .addCase(deleteUser.fulfilled, (state, action) => {
         state.users = state.users.filter(user => user._id !== action.payload);
+      })
+      // Refresh Token
+      .addCase(refreshTokenIfNeeded.fulfilled, (state) => {
+        // Token refresh successful, extend expiration time
+        const newExpirationTime = Date.now() + (24 * 60 * 60 * 1000);
+        localStorage.setItem('tokenExpiration', newExpirationTime.toString());
       });
   },
 });
@@ -366,7 +394,34 @@ export const deleteUser = createAsyncThunk<string, string, { rejectValue: string
   }
 );
 
-export const { logout, clearError } = authSlice.actions;
+export const refreshTokenIfNeeded = createAsyncThunk<void, void, { state: RootState }>(
+  'auth/refreshTokenIfNeeded',
+  async (_, { getState, dispatch }) => {
+    const { auth } = getState();
+    const expirationTime = localStorage.getItem('tokenExpiration');
+
+    if (expirationTime && auth.token) {
+      const now = Date.now();
+      const expiration = parseInt(expirationTime);
+      const timeUntilExpiration = expiration - now;
+
+      // If token expires in less than 5 minutes, try to refresh it
+      if (timeUntilExpiration < 5 * 60 * 1000 && timeUntilExpiration > 0) {
+        console.log('Token expires soon, attempting refresh...');
+        try {
+          // Try to get fresh user data (this will validate the current token)
+          await dispatch(getMe()).unwrap();
+          console.log('Token refresh successful');
+        } catch (error) {
+          console.warn('Token refresh failed, user will need to login again');
+          dispatch(logout());
+        }
+      }
+    }
+  }
+);
+
+export const { logout, clearError, checkTokenExpiration } = authSlice.actions;
 
 export const selectCurrentUser = (state: RootState) => state.auth.user;
 export const selectIsAuthenticated = (state: RootState) => state.auth.isAuthenticated;

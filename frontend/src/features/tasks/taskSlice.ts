@@ -316,6 +316,7 @@ export const createTask = createAsyncThunk<Task, Partial<Task>, { state: RootSta
         ...taskData,
         assignedTo: processedAssignees,
         createdBy: userId, // Ensure createdBy is set
+        assignedBy: userId, // Ensure assignedBy is set to the logged-in user
         status: 'todo' // Ensure status is always set
       };
 
@@ -458,7 +459,26 @@ const taskSlice = createSlice({
       state.tasks = [];
       state.total = 0;
     });
-    
+
+    // Fetch Assigned Tasks
+    builder.addCase(fetchAssignedTasks.pending, (state) => {
+      state.status = 'loading';
+      state.error = null;
+    });
+    builder.addCase(fetchAssignedTasks.fulfilled, (state, action) => {
+      state.status = 'succeeded';
+      // Store assigned tasks separately for easier access
+      state.tasks = action.payload.tasks;
+      state.total = action.payload.total;
+      state.error = null;
+    });
+    builder.addCase(fetchAssignedTasks.rejected, (state, action) => {
+      state.status = 'failed';
+      state.error = action.payload as string;
+      state.tasks = [];
+      state.total = 0;
+    });
+
     // Fetch Task By ID
     builder.addCase(fetchTaskById.pending, (state) => {
       state.status = 'loading';
@@ -475,53 +495,56 @@ const taskSlice = createSlice({
       state.error = action.payload as string || 'Failed to fetch task';
       state.currentTask = null;
     });
-    
+
     // Create Task
     builder.addCase(createTask.pending, (state) => {
       state.status = 'loading';
       state.error = null;
-      })
-      .addCase(createTask.fulfilled, (state, action: PayloadAction<Task>) => {
-        // Add the new task to the beginning of the list if it's not already there
-        const existingIndex = state.tasks.findIndex(t => t._id === action.payload._id);
-        if (existingIndex === -1) {
-          state.tasks.unshift(action.payload);
-          state.total += 1;
-        } else {
-          // Update existing task if it already exists
-          state.tasks[existingIndex] = action.payload;
+    })
+    .addCase(createTask.fulfilled, (state, action: PayloadAction<Task>) => {
+      // Add the new task to the beginning of the list if it's not already there
+      const existingIndex = state.tasks.findIndex(t => t._id === action.payload._id);
+      if (existingIndex === -1) {
+        state.tasks.unshift(action.payload);
+        state.total += 1;
+      } else {
+        // Update existing task if it already exists
+        state.tasks[existingIndex] = action.payload;
+      }
+      state.error = null;
+      state.status = 'succeeded';
+    })
+    .addCase(createTask.rejected, (state, action) => {
+      state.status = 'failed';
+      state.error = action.payload as string || 'Failed to create task';
+      // Reset status after a delay to clear error state
+      setTimeout(() => {
+        if (state.status === 'failed') {
+          state.status = 'idle';
         }
-        state.error = null;
-        state.status = 'succeeded';
-      })
-      .addCase(createTask.rejected, (state, action) => {
-        state.status = 'failed';
-        state.error = action.payload as string || 'Failed to create task';
-        // Reset status after a delay to clear error state
-        setTimeout(() => {
-          if (state.status === 'failed') {
-            state.status = 'idle';
-          }
-        }, 3000);
-      })
-      // Update Task
-      .addCase(updateTask.fulfilled, (state, action: PayloadAction<Task>) => {
-        const index = state.tasks.findIndex(task => task._id === action.payload._id);
-        if (index !== -1) {
-          state.tasks[index] = action.payload;
-        }
-        if (state.currentTask?._id === action.payload._id) {
-          state.currentTask = action.payload;
-        }
-      })
-      // Delete Task
-      .addCase(deleteTask.fulfilled, (state, action: PayloadAction<string>) => {
-        state.tasks = state.tasks.filter(task => task._id !== action.payload);
-        state.total -= 1;
-        if (state.currentTask?._id === action.payload) {
-          state.currentTask = null;
-        }
-      })
+      }, 3000);
+    });
+
+    // Update Task
+    builder.addCase(updateTask.fulfilled, (state, action: PayloadAction<Task>) => {
+      const index = state.tasks.findIndex(task => task._id === action.payload._id);
+      if (index !== -1) {
+        state.tasks[index] = action.payload;
+      }
+      if (state.currentTask?._id === action.payload._id) {
+        state.currentTask = action.payload;
+      }
+    });
+
+    // Delete Task
+    builder.addCase(deleteTask.fulfilled, (state, action: PayloadAction<string>) => {
+      state.tasks = state.tasks.filter(task => task._id !== action.payload);
+      state.total -= 1;
+      if (state.currentTask?._id === action.payload) {
+        state.currentTask = null;
+      }
+    });
+
     // Fetch My Completed Tasks
     builder.addCase(fetchMyCompletedTasks.pending, (state) => {
       state.status = 'loading';
@@ -580,7 +603,6 @@ export const {
 } = taskSlice.actions;
 
 export const selectAllTasks = (state: RootState) => state.tasks.tasks;
-export const selectCurrentTask = (state: RootState) => state.tasks.currentTask;
 export const selectTaskStatus = (state: RootState) => state.tasks.status;
 export const selectTaskError = (state: RootState) => state.tasks.error;
 export const selectTaskFilters = (state: RootState) => state.tasks.filters;

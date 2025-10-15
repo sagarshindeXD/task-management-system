@@ -56,7 +56,26 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      store.dispatch(logout());
+      // Check if this is a token expiration issue
+      const token = localStorage.getItem('token');
+      if (token) {
+        console.warn('Received 401 response, token might be expired');
+
+        // Only logout if we're not already in the process of logging out
+        // This prevents infinite loops
+        if (!error.config?.isRetry) {
+          console.log('Logging out due to 401 response');
+          store.dispatch(logout());
+
+          // Show a user-friendly message
+          if (typeof window !== 'undefined') {
+            // Only show alert in browser environment
+            setTimeout(() => {
+              alert('Your session has expired. Please log in again.');
+            }, 100);
+          }
+        }
+      }
     }
     return Promise.reject(error);
   }

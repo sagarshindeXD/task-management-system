@@ -40,6 +40,8 @@ const validationSchema = Yup.object({
     .required('Please select an assignee'),
   client: Yup.string()
     .required('Please select a client'),
+  department: Yup.string()
+    .required('Please select a department'),
 });
 interface TaskFormValues {
   title: string;
@@ -48,6 +50,7 @@ interface TaskFormValues {
   dueDate: string;
   assignee: string;
   client: string;
+  department: string;
   submit?: string;
 }
 const NewTask = () => {
@@ -87,6 +90,7 @@ const NewTask = () => {
       dueDate: '',
       assignee: '',
       client: '',
+      department: '',
     },
     validationSchema: validationSchema,
     validateOnChange: true,
@@ -127,6 +131,7 @@ const NewTask = () => {
           dueDate: values.dueDate ? new Date(values.dueDate).toISOString() : undefined,
           assignedTo: [assigneeId],
           client: values.client,
+          department: values.department,
         };
         
         console.log('Sending task data:', taskData);
@@ -252,7 +257,35 @@ const NewTask = () => {
               <FormHelperText>{formik.errors.client}</FormHelperText>
             )}
           </FormControl>
-          
+
+          <FormControl 
+            fullWidth 
+            margin="normal"
+            error={formik.touched.department && Boolean(formik.errors.department)}
+          >
+            <InputLabel id="department-label">Department</InputLabel>
+            <Select
+              labelId="department-label"
+              id="department"
+              name="department"
+              value={formik.values.department}
+              label="Department"
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
+            >
+              <MenuItem value="">
+                <em>Select a department</em>
+              </MenuItem>
+              <MenuItem value="SEO">SEO</MenuItem>
+              <MenuItem value="Social media marketing">Social Media Marketing</MenuItem>
+              <MenuItem value="Performance marketing">Performance Marketing</MenuItem>
+              <MenuItem value="Development">Development</MenuItem>
+            </Select>
+            {formik.touched.department && formik.errors.department && (
+              <FormHelperText>{formik.errors.department}</FormHelperText>
+            )}
+          </FormControl>
+
           <FormControl 
             fullWidth 
             margin="normal"
