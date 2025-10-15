@@ -250,7 +250,12 @@ const Tasks: React.FC = () => {
                 </TableCell>
                 <TableCell>
                   <Typography variant="body2">
-                    {task.assignedTo?.join(', ') || 'N/A'}
+                    {task.assignedTo && task.assignedTo.length > 0
+                      ? task.assignedTo.map(assigned => 
+                          typeof assigned === 'object' ? assigned.name : assigned
+                        ).join(', ')
+                      : 'N/A'
+                    }
                   </Typography>
                 </TableCell>
                 <TableCell>

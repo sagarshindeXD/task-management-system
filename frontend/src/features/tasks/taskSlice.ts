@@ -31,7 +31,7 @@ export interface Task {
   department?: string; // Department field
   createdBy: User | string;  // Who created the task
   assignedBy: User | string; // Who assigned the task (for admin view)
-  assignedTo: string[];
+  assignedTo: (User | string)[];
   client: string | Client;
   labels: string[];
   createdAt: string;
