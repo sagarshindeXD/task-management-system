@@ -121,7 +121,9 @@ exports.getAllTasks = catchAsync(async (req, res, next) => {
   
   let query = Task.find(filter)
     .populate('assignedTo', 'name email')
-    .populate('createdBy', 'name email');
+    .populate('createdBy', 'name email')
+    .populate('assignedBy', 'name email')
+    .populate('client', 'name');
 
   // Sorting
   if (req.query.sort) {
@@ -301,7 +303,9 @@ exports.updateTask = catchAsync(async (req, res, next) => {
       runValidators: true
     }
   ).populate('assignedTo', 'name email')
-   .populate('createdBy', 'name email');
+   .populate('createdBy', 'name email')
+   .populate('assignedBy', 'name email')
+   .populate('client', 'name');
 
   if (!updatedTask) {
     return next(new AppError('No task found with that ID', 404));
@@ -340,6 +344,8 @@ exports.getMyAssignedTasks = catchAsync(async (req, res, next) => {
   })
   .populate('assignedTo', 'name email')
   .populate('createdBy', 'name email')
+  .populate('assignedBy', 'name email')
+  .populate('client', 'name')
   .sort('-createdAt');
 
   res.status(200).json({
