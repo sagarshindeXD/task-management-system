@@ -381,251 +381,133 @@ const Dashboard: React.FC = () => {
         </Card>
       </Box>
 
-      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3 }}>
-        {/* Recent Tasks */}
-        <Box sx={{ flex: { xs: '1 1 100%', md: '2 1 0%' } }}>
-          <Paper sx={{ p: 3, borderRadius: 2, height: '100%' }}>
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-              <Typography variant="h6" component="h2">
-                Recent Tasks
-              </Typography>
-              <Button
-                component={Link}
-                to="/tasks"
-                size="small"
-                sx={{ textTransform: 'none' }}
-              >
-                View All
-              </Button>
-            </Box>
+      {/* Quick Actions & Upcoming Deadlines */}
+      <Box sx={{ flex: { xs: '1 1 100%', md: '1 1 0%' }, maxWidth: { md: '400px' } }}>
+        {/* Quick Actions */}
+        <Paper sx={{ p: 3, borderRadius: 2, mb: 3 }}>
+          <Typography variant="h6" component="h2" gutterBottom>
+            Quick Actions
+          </Typography>
+          <Box display="flex" flexDirection="column" gap={2}>
+            <Button
+              component={Link}
+              to="/tasks/new"
+              variant="contained"
+              fullWidth
+              startIcon={<AddIcon />}
+              sx={{ justifyContent: 'flex-start', py: 1.5, textTransform: 'none' }}
+            >
+              Create New Task
+            </Button>
+            <Button
+              component={Link}
+              to="/tasks?status=todo"
+              variant="outlined"
+              fullWidth
+              startIcon={<TodoIcon />}
+              sx={{ justifyContent: 'flex-start', py: 1.5, textTransform: 'none' }}
+            >
+              View To Do Tasks
+            </Button>
+            <Button
+              component={Link}
+              to="/tasks?status=in-progress"
+              variant="outlined"
+              fullWidth
+              startIcon={<InProgressIcon />}
+              sx={{ justifyContent: 'flex-start', py: 1.5, textTransform: 'none' }}
+            >
+              View In Progress
+            </Button>
+            <Button
+              component={Link}
+              to="/tasks?status=completed"
+              variant="outlined"
+              fullWidth
+              startIcon={<CompletedIcon />}
+              sx={{ justifyContent: 'flex-start', py: 1.5, textTransform: 'none' }}
+            >
+              View Completed
+            </Button>
+          </Box>
+        </Paper>
 
-            {status === 'loading' ? (
-              <Box display="flex" justifyContent="center" p={3}>
-                <CircularProgress color="primary" />
-              </Box>
-            ) : recentTasks.length > 0 ? (
-              <List sx={{ width: '100%', bgcolor: 'background.paper' }}>
-                {recentTasks.map((task) => (
-                  <React.Fragment key={task._id}>
-                    <ListItem
-                      alignItems="flex-start"
-                      component={Link}
-                      to={`/tasks/${task._id}`}
-                      sx={{
-                        textDecoration: 'none',
-                        color: 'inherit',
-                        '&:hover': {
-                          backgroundColor: 'action.hover',
-                          borderRadius: 1,
-                        },
-                      }}
-                    >
-                      <ListItemAvatar>
-                        {getStatusIcon(task.status)}
-                      </ListItemAvatar>
-                      <ListItemText
-                        primary={
-                          <Box display="flex" justifyContent="space-between" alignItems="center">
-                            <Typography
-                              variant="subtitle1"
-                              component="span"
-                              sx={{
-                                textDecoration: task.status === 'completed' ? 'line-through' : 'none',
-                                color: task.status === 'completed' ? 'text.secondary' : 'text.primary',
-                              }}
-                            >
-                              {task.title}
-                            </Typography>
-                            <Box
-                              component="span"
-                              sx={{
-                                width: 10,
-                                height: 10,
-                                borderRadius: '50%',
-                                bgcolor: getPriorityColor(task.priority),
-                                display: 'inline-block',
-                                ml: 1,
-                              }}
-                            />
-                          </Box>
-                        }
-                        secondary={
-                          <React.Fragment>
-                            <Typography
-                              component="span"
-                              variant="body2"
-                              color="text.secondary"
-                              sx={{
-                                display: 'block',
-                                textOverflow: 'ellipsis',
-                                overflow: 'hidden',
-                                whiteSpace: 'nowrap',
-                              }}
-                            >
-                              {task.description || 'No description'}
-                            </Typography>
-                            <Typography
-                              component="span"
-                              variant="caption"
-                              color="text.secondary"
-                            >
-                              {format(new Date(task.createdAt), 'MMM d, yyyy')}
-                            </Typography>
-                          </React.Fragment>
-                        }
-                      />
-                    </ListItem>
-                    {task.status !== 'completed' && <Divider variant="inset" component="li" />}
-                  </React.Fragment>
-                ))}
-              </List>
-            ) : (
-              <Box textAlign="center" p={3}>
-                <Typography variant="body1" color="text.secondary" gutterBottom>
-                  No tasks found
-                </Typography>
-                <Button
-                  component={Link}
-                  to="/tasks/new"
-                  variant="outlined"
-                  startIcon={<AddIcon />}
-                  sx={{ mt: 1 }}
-                >
-                  Create your first task
-                </Button>
-              </Box>
-            )}
-          </Paper>
-        </Box>
-
-        {/* Quick Actions & Upcoming Deadlines */}
-        <Box sx={{ flex: { xs: '1 1 100%', md: '1 1 0%' }, maxWidth: { md: '400px' } }}>
-          {/* Quick Actions */}
-          <Paper sx={{ p: 3, borderRadius: 2, mb: 3 }}>
-            <Typography variant="h6" component="h2" gutterBottom>
-              Quick Actions
-            </Typography>
-            <Box display="flex" flexDirection="column" gap={2}>
-              <Button
-                component={Link}
-                to="/tasks/new"
-                variant="contained"
-                fullWidth
-                startIcon={<AddIcon />}
-                sx={{ justifyContent: 'flex-start', py: 1.5, textTransform: 'none' }}
-              >
-                Create New Task
-              </Button>
-              <Button
-                component={Link}
-                to="/tasks?status=todo"
-                variant="outlined"
-                fullWidth
-                startIcon={<TodoIcon />}
-                sx={{ justifyContent: 'flex-start', py: 1.5, textTransform: 'none' }}
-              >
-                View To Do Tasks
-              </Button>
-              <Button
-                component={Link}
-                to="/tasks?status=in-progress"
-                variant="outlined"
-                fullWidth
-                startIcon={<InProgressIcon />}
-                sx={{ justifyContent: 'flex-start', py: 1.5, textTransform: 'none' }}
-              >
-                View In Progress
-              </Button>
-              <Button
-                component={Link}
-                to="/tasks?status=completed"
-                variant="outlined"
-                fullWidth
-                startIcon={<CompletedIcon />}
-                sx={{ justifyContent: 'flex-start', py: 1.5, textTransform: 'none' }}
-              >
-                View Completed
-              </Button>
-            </Box>
-          </Paper>
-
-          {/* Upcoming Deadlines */}
-          <Paper sx={{ p: 3, borderRadius: 2 }}>
-            <Typography variant="h6" component="h2" gutterBottom>
-              Upcoming Deadlines
-            </Typography>
-            {upcomingDeadlines.length > 0 ? (
-              <List>
-                {upcomingDeadlines.map((task) => (
-                  <React.Fragment key={task._id}>
-                    <ListItem
-                      alignItems="flex-start"
-                      component={Link}
-                      to={`/tasks/${task._id}`}
-                      sx={{
-                        textDecoration: 'none',
-                        color: 'inherit',
-                        '&:hover': {
-                          backgroundColor: 'action.hover',
-                          borderRadius: 1,
-                        },
-                      }}
-                    >
-                      <ListItemText
-                        primary={
-                          <Box display="flex" justifyContent="space-between" alignItems="center">
-                            <Typography
-                              variant="subtitle2"
-                              component="span"
-                              sx={{
-                                fontWeight: 500,
-                              }}
-                            >
-                              {task.title}
-                            </Typography>
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                              sx={{
-                                bgcolor: 'action.selected',
-                                px: 1,
-                                py: 0.5,
-                                borderRadius: 1,
-                                fontSize: '0.7rem',
-                              }}
-                            >
-                              {format(new Date(task.dueDate!), 'MMM d, yyyy')}
-                            </Typography>
-                          </Box>
-                        }
-                        secondary={
+        {/* Upcoming Deadlines */}
+        <Paper sx={{ p: 3, borderRadius: 2 }}>
+          <Typography variant="h6" component="h2" gutterBottom>
+            Upcoming Deadlines
+          </Typography>
+          {upcomingDeadlines.length > 0 ? (
+            <List>
+              {upcomingDeadlines.map((task) => (
+                <React.Fragment key={task._id}>
+                  <ListItem
+                    alignItems="flex-start"
+                    component={Link}
+                    to={`/tasks/${task._id}`}
+                    sx={{
+                      textDecoration: 'none',
+                      color: 'inherit',
+                      '&:hover': {
+                        backgroundColor: 'action.hover',
+                        borderRadius: 1,
+                      },
+                    }}
+                  >
+                    <ListItemText
+                      primary={
+                        <Box display="flex" justifyContent="space-between" alignItems="center">
+                          <Typography
+                            variant="subtitle2"
+                            component="span"
+                            sx={{
+                              fontWeight: 500,
+                            }}
+                          >
+                            {task.title}
+                          </Typography>
                           <Typography
                             variant="caption"
                             color="text.secondary"
                             sx={{
-                              display: 'block',
-                              textOverflow: 'ellipsis',
-                              overflow: 'hidden',
-                              whiteSpace: 'nowrap',
+                              bgcolor: 'action.selected',
+                              px: 1,
+                              py: 0.5,
+                              borderRadius: 1,
+                              fontSize: '0.7rem',
                             }}
                           >
-                            {task.status.charAt(0).toUpperCase() + task.status.slice(1).replace('-', ' ')}
+                            {format(new Date(task.dueDate!), 'MMM d, yyyy')}
                           </Typography>
-                        }
-                      />
-                    </ListItem>
-                  </React.Fragment>
-                ))}
-              </List>
-            ) : (
-              <Box textAlign="center" py={2}>
-                <Typography variant="body2" color="text.secondary">
-                  No upcoming deadlines
-                </Typography>
-              </Box>
-            )}
-          </Paper>
-        </Box>
+                        </Box>
+                      }
+                      secondary={
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{
+                            display: 'block',
+                            textOverflow: 'ellipsis',
+                            overflow: 'hidden',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {task.status.charAt(0).toUpperCase() + task.status.slice(1).replace('-', ' ')}
+                        </Typography>
+                      }
+                    />
+                  </ListItem>
+                </React.Fragment>
+              ))}
+            </List>
+          ) : (
+            <Box textAlign="center" py={2}>
+              <Typography variant="body2" color="text.secondary">
+                No upcoming deadlines
+              </Typography>
+            </Box>
+          )}
+        </Paper>
       </Box>
     </Box>
   );
