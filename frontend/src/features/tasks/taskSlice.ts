@@ -607,6 +607,7 @@ export const selectTaskStatus = (state: RootState) => state.tasks.status;
 export const selectTaskError = (state: RootState) => state.tasks.error;
 export const selectTaskFilters = (state: RootState) => state.tasks.filters;
 export const selectTotalTasks = (state: RootState) => state.tasks.total;
+export const selectCurrentTask = (state: RootState) => state.tasks.currentTask;
 export const selectMyCompletedTasks = (state: RootState) => state.tasks.myCompletedTasks;
 export const selectTeamTasks = (state: RootState) => state.tasks.teamTasks;
 export const selectDashboardMetrics = (state: RootState) => state.tasks.dashboardMetrics;
