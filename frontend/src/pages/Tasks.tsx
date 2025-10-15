@@ -14,6 +14,7 @@ import {
   selectTeamTasks,
   selectAllTasks,
   updateTaskStatus,
+  User,
 } from '../features/tasks/taskSlice';
 import { selectCurrentUser } from '../features/auth/authSlice';
 import {
@@ -251,7 +252,7 @@ const Tasks: React.FC = () => {
                 <TableCell>
                   <Typography variant="body2">
                     {task.assignedTo && task.assignedTo.length > 0
-                      ? task.assignedTo.map(assigned => 
+                      ? task.assignedTo.map((assigned: User | string) => 
                           typeof assigned === 'object' ? assigned.name : assigned
                         ).join(', ')
                       : 'N/A'
