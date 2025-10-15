@@ -47,11 +47,7 @@ const Dashboard: React.FC = () => {
   const currentUser = useAppSelector(selectCurrentUser);
   const isAdmin = currentUser?.role === 'admin';
 
-  // Redirect non-admin users to tasks page
-  if (!isAdmin) {
-    return <Navigate to="/tasks" replace />;
-  }
-
+  // Move hooks before early return
   const { tasks, status } = useAppSelector((state) => state.tasks);
   const dashboardMetrics = useAppSelector((state) => state.tasks.dashboardMetrics);
 
@@ -63,6 +59,11 @@ const Dashboard: React.FC = () => {
       dispatch(fetchDashboardMetrics());
     }
   }, [dispatch, isAdmin]);
+
+  // Redirect non-admin users to tasks page
+  if (!isAdmin) {
+    return <Navigate to="/tasks" replace />;
+  }
 
   // Filter and sort tasks
   const recentTasks = [...tasks]
