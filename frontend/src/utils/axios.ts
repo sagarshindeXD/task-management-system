@@ -8,8 +8,8 @@ console.log('Environment variables:', {
   REACT_APP_API_URL: process.env.REACT_APP_API_URL
 });
 
-// Force the correct API URL - override any deployment config issues
-const API_URL = 'https://task-management-system-rimh.onrender.com';
+// Use environment variable if available, otherwise default to localhost for development
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 const baseURL = `${API_URL}/api`;
 
 console.log('Using API base URL:', baseURL);

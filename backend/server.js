@@ -16,33 +16,59 @@ const port = process.env.PORT || 5000;
 // CORS Configuration
 const allowedOrigins = [
   'http://localhost:3000',
+  'http://localhost:3001',
   'https://task-management-system-five-theta.vercel.app',
   'https://task-management-system-4me42h9no-sagarshindexds-projects.vercel.app',
   'https://task-management-system-rimh.onrender.com',
   'https://task-management-system-git-main-sagarshindexds-projects.vercel.app',
   'https://task-management-system-2itvh436w-sagarshindexds-projects.vercel.app',
-  'https://task-management-system-ox9ac1006-sagarshindexds-projects.vercel.app', // New Vercel preview URL
-  /^https:\/\/task-management-system-.*-sagarshindexds-projects\.vercel\.app$/, // Match all preview URLs
-  /^https:\/\/task-management-system(-[a-z0-9]+)*\.vercel\.app$/ // Match all Vercel deployment URLs
+  'https://task-management-system-ox9ac1006-sagarshindexds-projects.vercel.app',
+  // Add regex patterns for all Vercel deployments
+  /^https:\/\/task-management-system-.*-sagarshindexds-projects\.vercel\.app$/,
+  /^https:\/\/task-management-system(-[a-z0-9]+)*\.vercel\.app$/,
+  // Also allow any subdomain of vercel.app for development
+  /^https:\/\/.*\.vercel\.app$/
 ];
+
 const corsOptions = {
   origin: function (origin, callback) {
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+    // Allow requests with no origin (mobile apps, Postman, etc.)
+    if (!origin) {
+      console.log('CORS: Allowing request with no origin');
+      return callback(null, true);
+    }
+
+    // Check if origin matches any of the allowed origins
+    const isAllowed = allowedOrigins.some(allowedOrigin => {
+      if (typeof allowedOrigin === 'string') {
+        return allowedOrigin === origin;
+      } else if (allowedOrigin instanceof RegExp) {
+        return allowedOrigin.test(origin);
+      }
+      return false;
+    });
+
+    if (isAllowed) {
+      console.log(`CORS: Allowing origin: ${origin}`);
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      console.log(`CORS: Blocking origin: ${origin}`);
+      console.log('Allowed origins:', allowedOrigins.map(o => typeof o === 'string' ? o : o.toString()));
+      callback(new Error(`Not allowed by CORS. Origin: ${origin}`));
     }
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: [
-    'Content-Type',
-    'Authorization',
+    'Origin',
     'X-Requested-With',
-    'X-XSRF-TOKEN',
+    'Content-Type',
+    'Accept',
+    'Authorization',
     'Cache-Control',
     'Pragma',
-    'Expires'
+    'Expires',
+    'X-XSRF-TOKEN'
   ],
   exposedHeaders: ['Content-Length', 'X-Foo', 'X-Bar'],
   optionsSuccessStatus: 200
@@ -53,25 +79,38 @@ app.options('*', cors(corsOptions));
 
 // Middleware
 app.use(cors(corsOptions));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(morgan('dev'));
 
 // Add CORS headers to all responses
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  if (allowedOrigins.includes(origin)) {
-    res.header('Access-Control-Allow-Origin', origin);
+
+  // Check if origin is allowed
+  const isAllowed = !origin || allowedOrigins.some(allowedOrigin => {
+    if (typeof allowedOrigin === 'string') {
+      return allowedOrigin === origin;
+    } else if (allowedOrigin instanceof RegExp) {
+      return allowedOrigin.test(origin);
+    }
+    return false;
+  });
+
+  if (isAllowed) {
+    res.header('Access-Control-Allow-Origin', origin || '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Pragma, Expires, X-XSRF-TOKEN');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Max-Age', '86400'); // 24 hours
   }
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Pragma, Expires');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  
-  // Handle preflight
+
+  // Handle preflight requests
   if (req.method === 'OPTIONS') {
+    console.log(`CORS: Handling preflight request from origin: ${origin}`);
     return res.sendStatus(200);
   }
-  
+
   next();
 });
 

@@ -80,42 +80,40 @@ export const register = createAsyncThunk<
 export const login = createAsyncThunk<AuthResponse, LoginCredentials, { rejectValue: string }>(
   'auth/login',
   async ({ email, password }, { rejectWithValue, dispatch }) => {
+    const startTime = performance.now();
     try {
       console.log('Making login request to login endpoint');
-      // First, make the login request
+      // Make the login request - this returns all the user data we need
       const loginResponse = await api.post<AuthResponse>('/users/login', {
         email,
         password,
       });
 
-      // Save the token from login response
-      const { token } = loginResponse.data;
-      if (token) {
-        localStorage.setItem('token', token);
+      // The backend returns { status: 'success', token, data: { user } }
+      // But our interface expects { user, token, message? }
+      // We need to transform the response to match our interface
+      const rawResponse = loginResponse.data as any;
+      const transformedResponse: AuthResponse = {
+        user: rawResponse.data?.user,
+        token: rawResponse.token,
+        message: rawResponse.status === 'success' ? 'Login successful' : undefined
+      };
+
+      if (transformedResponse.token) {
+        localStorage.setItem('token', transformedResponse.token);
         // Set token expiration time (24 hours from now)
         const expirationTime = Date.now() + (24 * 60 * 60 * 1000);
         localStorage.setItem('tokenExpiration', expirationTime.toString());
       }
 
-      // Then fetch the user's details
-      try {
-        const meResponse = await api.get<MeApiResponse>('/users/me');
-        const userData = meResponse.data?.data?.user;
+      const endTime = performance.now();
+      console.log(`Login completed in ${(endTime - startTime).toFixed(2)}ms`);
+      console.log('Login successful, user data:', transformedResponse.user);
 
-        if (userData) {
-          // Return the combined data
-          return {
-            ...loginResponse.data,
-            user: userData
-          };
-        }
-      } catch (meError) {
-        console.warn('Failed to fetch user details, using basic user info from login', meError);
-        // If fetching user details fails, continue with the basic user info from login
-      }
-
-      return loginResponse.data;
+      return transformedResponse;
     } catch (error: any) {
+      const endTime = performance.now();
+      console.error(`Login failed after ${(endTime - startTime).toFixed(2)}ms:`, error.message);
       const message = error.response?.data?.message || 'Login failed';
       return rejectWithValue(message) as any;
     }
