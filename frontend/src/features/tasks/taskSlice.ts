@@ -262,13 +262,27 @@ export const updateTaskStatus = createAsyncThunk<
   { state: RootState; rejectValue: string }
 >(
   'tasks/updateStatus',
-  async ({ id, status }, { rejectWithValue }) => {
+  async ({ id, status }, { rejectWithValue, getState, dispatch }) => {
     try {
       const response = await api.patch<{ data: { task: Task } }>(
         `/tasks/${id}/status`,
         { status }
       );
-      return response.data.data.task;
+      const updatedTask = response.data.data.task;
+
+      // Update the task in the current state
+      dispatch(updateTaskInList(updatedTask));
+
+      // Refresh dashboard metrics for admin users after status update
+      const state = getState() as RootState;
+      const currentUser = state.auth.user;
+
+      if (currentUser?.role === 'admin') {
+        // Refresh dashboard metrics asynchronously
+        dispatch(fetchDashboardMetrics() as any);
+      }
+
+      return updatedTask;
     } catch (error: any) {
       return rejectWithValue(
         error.response?.data?.message || 'Failed to update task status'
@@ -373,14 +387,28 @@ export const updateTask = createAsyncThunk(
   'tasks/updateTask',
   async (
     { id, taskData }: { id: string; taskData: Partial<Task> },
-    { rejectWithValue }
+    { rejectWithValue, getState, dispatch }
   ) => {
     try {
       const response = await api.patch<{ data: { task: Task } }>(
         `/tasks/${id}`,
         taskData
       );
-      return response.data.data.task;
+      const updatedTask = response.data.data.task;
+
+      // Update the task in the current state
+      dispatch(updateTaskInList(updatedTask));
+
+      // Refresh dashboard metrics for admin users after task update
+      const state = getState() as RootState;
+      const currentUser = state.auth.user;
+
+      if (currentUser?.role === 'admin') {
+        // Refresh dashboard metrics asynchronously
+        dispatch(fetchDashboardMetrics() as any);
+      }
+
+      return updatedTask;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to update task');
     }
@@ -525,6 +553,22 @@ const taskSlice = createSlice({
       }, 3000);
     });
 
+    // Update Task Status
+    builder.addCase(updateTaskStatus.fulfilled, (state, action: PayloadAction<Task>) => {
+      const index = state.tasks.findIndex(task => task._id === action.payload._id);
+      if (index !== -1) {
+        state.tasks[index] = action.payload;
+      }
+      if (state.currentTask?._id === action.payload._id) {
+        state.currentTask = action.payload;
+      }
+      state.error = null;
+    });
+
+    builder.addCase(updateTaskStatus.rejected, (state, action) => {
+      state.error = action.payload as string || 'Failed to update task status';
+    });
+
     // Update Task
     builder.addCase(updateTask.fulfilled, (state, action: PayloadAction<Task>) => {
       const index = state.tasks.findIndex(task => task._id === action.payload._id);
@@ -534,17 +578,12 @@ const taskSlice = createSlice({
       if (state.currentTask?._id === action.payload._id) {
         state.currentTask = action.payload;
       }
+      state.error = null;
     });
 
-    // Delete Task
-    builder.addCase(deleteTask.fulfilled, (state, action: PayloadAction<string>) => {
-      state.tasks = state.tasks.filter(task => task._id !== action.payload);
-      state.total -= 1;
-      if (state.currentTask?._id === action.payload) {
-        state.currentTask = null;
-      }
+    builder.addCase(updateTask.rejected, (state, action) => {
+      state.error = action.payload as string || 'Failed to update task';
     });
-
     // Fetch My Completed Tasks
     builder.addCase(fetchMyCompletedTasks.pending, (state) => {
       state.status = 'loading';

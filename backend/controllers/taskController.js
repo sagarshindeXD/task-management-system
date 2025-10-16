@@ -394,14 +394,8 @@ exports.getTaskStats = catchAsync(async (req, res, next) => {
 // @access  Private (Admin only)
 exports.getDashboardMetrics = catchAsync(async (req, res, next) => {
   try {
-    // Simple approach: get basic task counts first
-    const totalTasks = await Task.countDocuments();
-    const completedTasks = await Task.countDocuments({ status: 'completed' });
-    const inProgressTasks = await Task.countDocuments({ status: 'in-progress' });
-    const todoTasks = await Task.countDocuments({ status: 'todo' });
-
-    // Get user assignments (simplified)
-    const userAssignments = await Task.aggregate([
+    // Get user-specific task statistics
+    const userStats = await Task.aggregate([
       {
         $match: {
           assignedTo: { $exists: true, $ne: [] }
@@ -413,65 +407,133 @@ exports.getDashboardMetrics = catchAsync(async (req, res, next) => {
       {
         $group: {
           _id: '$assignedTo',
-          count: { $sum: 1 }
+          totalTasks: { $sum: 1 },
+          completedTasks: {
+            $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] }
+          },
+          inProgressTasks: {
+            $sum: { $cond: [{ $eq: ['$status', 'in-progress'] }, 1, 0] }
+          },
+          todoTasks: {
+            $sum: { $cond: [{ $eq: ['$status', 'todo'] }, 1, 0] }
+          },
+          delayedTasks: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $eq: ['$status', 'in-progress'] },
+                    { $lt: ['$dueDate', new Date()] }
+                  ]
+                },
+                1,
+                0
+              ]
+            }
+          },
+          inReviewTasks: {
+            $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] } // Simplified - completed tasks are considered "in review"
+          }
         }
       }
     ]);
 
-    // Get unique users who have tasks
-    const userIds = [...new Set(userAssignments.map(item => item._id))];
-
-    // Get user details for those who have tasks
+    // Get unique user IDs and fetch user details
+    const userIds = userStats.map(stat => stat._id);
     const users = await User.find(
       { _id: { $in: userIds } },
       'name email'
     ).lean();
 
-    // Map user data with task counts
-    const userStats = users.map(user => {
-      const assignment = userAssignments.find(a => a._id.toString() === user._id.toString());
+    // Map user data with calculated statistics
+    const userMetrics = users.map(user => {
+      const stats = userStats.find(s => s._id.toString() === user._id.toString()) || {};
+      const total = stats.totalTasks || 0;
+      const completed = stats.completedTasks || 0;
+      const performance = total > 0 ? Math.round((completed / total) * 100) : 0;
+
       return {
         _id: user._id,
         name: user.name,
-        tasksAssigned: assignment ? assignment.count : 0,
-        doneTasks: 0, // Would need more complex query to get this
-        pendingTasks: assignment ? assignment.count : 0,
-        delayedTasks: 0,
-        inReviewTasks: 0,
-        workingTasks: 0,
-        performance: 0
+        tasksAssigned: total,
+        doneTasks: completed,
+        pendingTasks: (stats.inProgressTasks || 0) + (stats.todoTasks || 0),
+        delayedTasks: stats.delayedTasks || 0,
+        inReviewTasks: stats.inReviewTasks || 0,
+        workingTasks: stats.inProgressTasks || 0,
+        performance: performance
       };
     });
 
-    // Get department data (simplified)
-    const departmentData = await Task.aggregate([
+    // Get department-specific task statistics
+    const departmentStats = await Task.aggregate([
       {
         $match: {
-          department: { $exists: true, $ne: null, $ne: 'General' }
+          department: { $exists: true, $ne: null, $ne: '' }
         }
       },
       {
         $group: {
           _id: '$department',
-          count: { $sum: 1 }
+          totalTasks: { $sum: 1 },
+          completedTasks: {
+            $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] }
+          },
+          inProgressTasks: {
+            $sum: { $cond: [{ $eq: ['$status', 'in-progress'] }, 1, 0] }
+          },
+          todoTasks: {
+            $sum: { $cond: [{ $eq: ['$status', 'todo'] }, 1, 0] }
+          },
+          delayedTasks: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $eq: ['$status', 'in-progress'] },
+                    { $lt: ['$dueDate', new Date()] }
+                  ]
+                },
+                1,
+                0
+              ]
+            }
+          },
+          inReviewTasks: {
+            $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] } // Simplified
+          }
         }
       }
     ]);
 
-    const departments = departmentData.map(dept => ({
-      name: dept._id,
-      tasksAssigned: dept.count,
-      doneTasks: 0,
-      pendingTasks: dept.count,
-      delayedTasks: 0,
-      inReviewTasks: 0,
-      workingTasks: 0
-    }));
+    // Map department data with calculated statistics
+    const departmentMetrics = departmentStats.map(dept => {
+      const total = dept.totalTasks || 0;
+      const completed = dept.completedTasks || 0;
+      const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+      return {
+        name: dept._id,
+        tasksAssigned: total,
+        doneTasks: completed,
+        pendingTasks: (dept.inProgressTasks || 0) + (dept.todoTasks || 0),
+        delayedTasks: dept.delayedTasks || 0,
+        inReviewTasks: dept.inReviewTasks || 0,
+        workingTasks: dept.inProgressTasks || 0,
+        completionRate: completionRate
+      };
+    });
+
+    // Get overall summary statistics
+    const totalTasks = await Task.countDocuments();
+    const completedTasks = await Task.countDocuments({ status: 'completed' });
+    const inProgressTasks = await Task.countDocuments({ status: 'in-progress' });
+    const todoTasks = await Task.countDocuments({ status: 'todo' });
 
     res.status(200).json({
       status: 'success',
-      users: userStats,
-      departments: departments,
+      users: userMetrics,
+      departments: departmentMetrics,
       summary: {
         totalTasks,
         completedTasks,
