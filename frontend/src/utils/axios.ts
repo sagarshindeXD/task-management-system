@@ -9,10 +9,13 @@ console.log('Environment variables:', {
 });
 
 // Use environment variable if available, otherwise default to localhost for development
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-const baseURL = `${API_URL}/api`;
-// At the top of axios.ts
-console.log('API URL:', process.env.REACT_APP_API_URL);
+const API_URL = process.env.REACT_APP_API_URL || 'https://task-management-system-rimh.onrender.com';
+const baseURL = `${API_URL.replace(/\/+$/, '')}/api`;
+
+console.log('Environment variables:', {
+  NODE_ENV: process.env.NODE_ENV,
+  REACT_APP_API_URL: process.env.REACT_APP_API_URL
+});
 console.log('Using API base URL:', baseURL);
 
 // For development, you can uncomment this to use localhost
