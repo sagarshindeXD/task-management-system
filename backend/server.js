@@ -136,6 +136,19 @@ app.get('/', (req, res) => {
   });
 });
 
+// Health check route for debugging
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    routes: {
+      'GET /api/users': 'Available',
+      'POST /api/users/login': 'Available',
+      'POST /api/users/register': 'Available'
+    }
+  });
+});
+
 // API Routes
 app.use('/api/tasks', taskRoutes);
 app.use('/api/users', userRoutes);
