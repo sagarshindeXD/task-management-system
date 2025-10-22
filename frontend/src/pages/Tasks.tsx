@@ -7,11 +7,13 @@ import {
   fetchAssignedTasks,
   fetchMyCompletedTasks,
   fetchTeamTasks,
+  fetchTeamCompletedTasks,
   deleteTask,
   selectTaskStatus,
   selectTaskError,
   selectMyCompletedTasks,
   selectTeamTasks,
+  selectTeamCompletedTasks,
   selectAllTasks,
   updateTaskStatus,
   User,
@@ -94,6 +96,7 @@ const Tasks: React.FC = () => {
   const error = useAppSelector(selectTaskError);
   const myCompletedTasks = useAppSelector(selectMyCompletedTasks);
   const teamTasks = useAppSelector(selectTeamTasks);
+  const teamCompletedTasks = useAppSelector(selectTeamCompletedTasks);
   const assignedTasks = useAppSelector(selectAllTasks); // Get the tasks from state
 
   // Local state for tabs
@@ -109,6 +112,7 @@ const Tasks: React.FC = () => {
           // These endpoints return real data from backend now
           await dispatch(fetchMyCompletedTasks() as any);
           await dispatch(fetchTeamTasks() as any);
+          await dispatch(fetchTeamCompletedTasks() as any);
         }
       } catch (error) {
         console.error('Error fetching tasks:', error);
@@ -134,6 +138,7 @@ const Tasks: React.FC = () => {
         await dispatch(fetchAssignedTasks() as any);
         await dispatch(fetchMyCompletedTasks() as any);
         await dispatch(fetchTeamTasks() as any);
+        await dispatch(fetchTeamCompletedTasks() as any);
       } catch (error) {
         console.error('Failed to delete task:', error);
       }
@@ -175,6 +180,7 @@ const Tasks: React.FC = () => {
       await dispatch(fetchAssignedTasks() as any);
       await dispatch(fetchMyCompletedTasks() as any);
       await dispatch(fetchTeamTasks() as any);
+      await dispatch(fetchTeamCompletedTasks() as any);
     } catch (error: any) {
       console.error('Failed to update task status:', error);
     }
@@ -392,7 +398,7 @@ const Tasks: React.FC = () => {
               Team Completed Tasks
             </Typography>
             {renderTaskTable(
-              [], // For now, we'll use empty array for team completed tasks
+              teamCompletedTasks,
               'Team Completed Tasks',
               'No completed tasks in the team yet.'
             )}

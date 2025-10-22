@@ -16,6 +16,9 @@ router.get('/my-completed', taskController.getMyCompletedTasks);
 // Get all team tasks
 router.get('/team-tasks', taskController.getTeamTasks);
 
+// Get all team completed tasks
+router.get('/team-completed', taskController.getTeamCompletedTasks);
+
 router
   .route('/')
   .get(taskController.getAllTasks)

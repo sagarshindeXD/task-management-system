@@ -592,15 +592,17 @@ exports.getMyCompletedTasks = catchAsync(async (req, res, next) => {
   });
 });
 
-// @desc    Get all team tasks (for organization-wide view)
-// @route   GET /api/tasks/team-tasks
+// @desc    Get all team completed tasks (for organization-wide view)
+// @route   GET /api/tasks/team-completed
 // @access  Private
-exports.getTeamTasks = catchAsync(async (req, res, next) => {
+exports.getTeamCompletedTasks = catchAsync(async (req, res, next) => {
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 10;
   const skip = (page - 1) * limit;
 
-  const tasks = await Task.find()
+  const tasks = await Task.find({
+    status: 'completed'
+  })
   .populate('assignedTo', 'name email')
   .populate('createdBy', 'name email')
   .populate('assignedBy', 'name email')
@@ -609,7 +611,9 @@ exports.getTeamTasks = catchAsync(async (req, res, next) => {
   .skip(skip)
   .limit(limit);
 
-  const total = await Task.countDocuments();
+  const total = await Task.countDocuments({
+    status: 'completed'
+  });
 
   res.status(200).json({
     status: 'success',

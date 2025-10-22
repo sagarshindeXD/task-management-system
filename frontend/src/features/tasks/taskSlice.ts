@@ -46,6 +46,7 @@ interface TaskState {
   total: number;
   myCompletedTasks: Task[];
   teamTasks: Task[];
+  teamCompletedTasks: Task[];
   dashboardMetrics: {
     users: Array<{
       _id: string;
@@ -86,6 +87,7 @@ const initialState: TaskState = {
   total: 0,
   myCompletedTasks: [],
   teamTasks: [],
+  teamCompletedTasks: [],
   dashboardMetrics: null,
   filters: {
     status: [],
@@ -202,6 +204,29 @@ export const fetchTeamTasks = createAsyncThunk<{ tasks: Task[]; total: number },
         return { tasks: [], total: 0 };
       }
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch team tasks');
+    }
+  }
+);
+
+// Add new async thunk for fetching team completed tasks
+// Note: This endpoint may not exist on backend yet
+export const fetchTeamCompletedTasks = createAsyncThunk<{ tasks: Task[]; total: number }, void, { state: RootState }>(
+  'tasks/fetchTeamCompletedTasks',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await api.get<{ data: { tasks: Task[]; total: number } }>(
+        '/tasks/team-completed'
+      );
+      return {
+        tasks: response.data.data.tasks,
+        total: response.data.data.total
+      };
+    } catch (error: any) {
+      // If endpoint doesn't exist, return empty data instead of rejecting
+      if (error.response?.status === 404 || error.response?.status === 500) {
+        return { tasks: [], total: 0 };
+      }
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch team completed tasks');
     }
   }
 );
@@ -547,20 +572,50 @@ const taskSlice = createSlice({
       state.error = action.payload as string || 'Failed to create task';
       // Reset status after a delay to clear error state
       setTimeout(() => {
-        if (state.status === 'failed') {
-          state.status = 'idle';
-        }
+        state.status = 'idle';
       }, 3000);
     });
 
-    // Update Task Status
+    // Update Task Status - Enhanced to handle list movement
     builder.addCase(updateTaskStatus.fulfilled, (state, action: PayloadAction<Task>) => {
-      const index = state.tasks.findIndex(task => task._id === action.payload._id);
+      const updatedTask = action.payload;
+      const index = state.tasks.findIndex(task => task._id === updatedTask._id);
+
       if (index !== -1) {
-        state.tasks[index] = action.payload;
+        // If task is completed, remove from assigned tasks and add to completed tasks
+        if (updatedTask.status === 'completed') {
+          // Remove from assigned tasks list
+          state.tasks.splice(index, 1);
+          state.total -= 1;
+
+          // Add to completed tasks list if not already there
+          const completedIndex = state.myCompletedTasks.findIndex(task => task._id === updatedTask._id);
+          if (completedIndex === -1) {
+            state.myCompletedTasks.unshift(updatedTask);
+          } else {
+            state.myCompletedTasks[completedIndex] = updatedTask;
+          }
+        } else {
+          // For non-completed tasks, just update in place
+          state.tasks[index] = updatedTask;
+        }
+      } else {
+        // Task not in assigned tasks list, check if it's in completed tasks and needs to move back
+        if (updatedTask.status !== 'completed') {
+          const completedIndex = state.myCompletedTasks.findIndex(task => task._id === updatedTask._id);
+          if (completedIndex !== -1) {
+            // Remove from completed tasks
+            state.myCompletedTasks.splice(completedIndex, 1);
+
+            // Add to assigned tasks
+            state.tasks.unshift(updatedTask);
+            state.total += 1;
+          }
+        }
       }
-      if (state.currentTask?._id === action.payload._id) {
-        state.currentTask = action.payload;
+
+      if (state.currentTask?._id === updatedTask._id) {
+        state.currentTask = updatedTask;
       }
       state.error = null;
     });
@@ -616,6 +671,22 @@ const taskSlice = createSlice({
       state.teamTasks = [];
     });
 
+    // Fetch Team Completed Tasks
+    builder.addCase(fetchTeamCompletedTasks.pending, (state) => {
+      state.status = 'loading';
+      state.error = null;
+    });
+    builder.addCase(fetchTeamCompletedTasks.fulfilled, (state, action) => {
+      state.status = 'succeeded';
+      state.teamCompletedTasks = action.payload.tasks;
+      state.error = null;
+    });
+    builder.addCase(fetchTeamCompletedTasks.rejected, (state, action) => {
+      state.status = 'failed';
+      state.error = action.payload as string;
+      state.teamCompletedTasks = [];
+    });
+
     // Fetch Dashboard Metrics
     builder.addCase(fetchDashboardMetrics.pending, (state) => {
       state.status = 'loading';
@@ -649,6 +720,7 @@ export const selectTotalTasks = (state: RootState) => state.tasks.total;
 export const selectCurrentTask = (state: RootState) => state.tasks.currentTask;
 export const selectMyCompletedTasks = (state: RootState) => state.tasks.myCompletedTasks;
 export const selectTeamTasks = (state: RootState) => state.tasks.teamTasks;
+export const selectTeamCompletedTasks = (state: RootState) => state.tasks.teamCompletedTasks;
 export const selectDashboardMetrics = (state: RootState) => state.tasks.dashboardMetrics;
 
 export default taskSlice.reducer;
