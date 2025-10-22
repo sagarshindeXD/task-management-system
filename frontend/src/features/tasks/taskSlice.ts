@@ -520,7 +520,7 @@ const taskSlice = createSlice({
     });
     builder.addCase(fetchAssignedTasks.fulfilled, (state, action) => {
       state.status = 'succeeded';
-      // Store assigned tasks separately for easier access
+      // Match what the async thunk actually returns: { tasks: Task[]; total: number }
       state.tasks = action.payload.tasks;
       state.total = action.payload.total;
       state.error = null;
