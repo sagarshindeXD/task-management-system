@@ -576,19 +576,19 @@ const taskSlice = createSlice({
       }, 3000);
     });
 
-    // Update Task Status - Enhanced to handle list movement
+    // Update Task Status - Enhanced to handle list movement for both personal and team tasks
     builder.addCase(updateTaskStatus.fulfilled, (state, action: PayloadAction<Task>) => {
       const updatedTask = action.payload;
-      const index = state.tasks.findIndex(task => task._id === updatedTask._id);
 
-      if (index !== -1) {
-        // If task is completed, remove from assigned tasks and add to completed tasks
+      // Handle personal tasks (state.tasks and state.myCompletedTasks)
+      let personalTaskIndex = state.tasks.findIndex(task => task._id === updatedTask._id);
+      if (personalTaskIndex !== -1) {
         if (updatedTask.status === 'completed') {
-          // Remove from assigned tasks list
-          state.tasks.splice(index, 1);
+          // Remove from personal assigned tasks
+          state.tasks.splice(personalTaskIndex, 1);
           state.total -= 1;
 
-          // Add to completed tasks list if not already there
+          // Add to personal completed tasks if not already there
           const completedIndex = state.myCompletedTasks.findIndex(task => task._id === updatedTask._id);
           if (completedIndex === -1) {
             state.myCompletedTasks.unshift(updatedTask);
@@ -597,20 +597,46 @@ const taskSlice = createSlice({
           }
         } else {
           // For non-completed tasks, just update in place
-          state.tasks[index] = updatedTask;
+          state.tasks[personalTaskIndex] = updatedTask;
         }
-      } else {
-        // Task not in assigned tasks list, check if it's in completed tasks and needs to move back
-        if (updatedTask.status !== 'completed') {
-          const completedIndex = state.myCompletedTasks.findIndex(task => task._id === updatedTask._id);
-          if (completedIndex !== -1) {
-            // Remove from completed tasks
-            state.myCompletedTasks.splice(completedIndex, 1);
+      } else if (updatedTask.status !== 'completed') {
+        // Task not in personal assigned tasks, check if it's in personal completed tasks and needs to move back
+        const completedIndex = state.myCompletedTasks.findIndex(task => task._id === updatedTask._id);
+        if (completedIndex !== -1) {
+          // Remove from personal completed tasks
+          state.myCompletedTasks.splice(completedIndex, 1);
+          // Add to personal assigned tasks
+          state.tasks.unshift(updatedTask);
+          state.total += 1;
+        }
+      }
 
-            // Add to assigned tasks
-            state.tasks.unshift(updatedTask);
-            state.total += 1;
+      // Handle team tasks (state.teamTasks and state.teamCompletedTasks)
+      let teamTaskIndex = state.teamTasks.findIndex(task => task._id === updatedTask._id);
+      if (teamTaskIndex !== -1) {
+        if (updatedTask.status === 'completed') {
+          // Remove from team assigned tasks
+          state.teamTasks.splice(teamTaskIndex, 1);
+
+          // Add to team completed tasks if not already there
+          const teamCompletedIndex = state.teamCompletedTasks.findIndex(task => task._id === updatedTask._id);
+          if (teamCompletedIndex === -1) {
+            state.teamCompletedTasks.unshift(updatedTask);
+          } else {
+            state.teamCompletedTasks[teamCompletedIndex] = updatedTask;
           }
+        } else {
+          // For non-completed tasks, just update in place
+          state.teamTasks[teamTaskIndex] = updatedTask;
+        }
+      } else if (updatedTask.status !== 'completed') {
+        // Task not in team assigned tasks, check if it's in team completed tasks and needs to move back
+        const teamCompletedIndex = state.teamCompletedTasks.findIndex(task => task._id === updatedTask._id);
+        if (teamCompletedIndex !== -1) {
+          // Remove from team completed tasks
+          state.teamCompletedTasks.splice(teamCompletedIndex, 1);
+          // Add to team assigned tasks
+          state.teamTasks.unshift(updatedTask);
         }
       }
 
