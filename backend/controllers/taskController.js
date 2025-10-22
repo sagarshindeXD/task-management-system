@@ -4,38 +4,6 @@ const User = require('../models/User');
 const AppError = require('../utils/AppError');
 const catchAsync = require('../utils/catchAsync');
 
-// @desc    Update task status
-// @route   PATCH /api/tasks/:id/status
-// @access  Private
-exports.updateTaskStatus = catchAsync(async (req, res, next) => {
-  const { status } = req.body;
-  
-  if (!status) {
-    return next(new AppError('Status is required', 400));
-  }
-
-  const task = await Task.findByIdAndUpdate(
-    req.params.id,
-    { status },
-    {
-      new: true,
-      runValidators: true
-    }
-  ).populate('assignedTo', 'name email')
-   .populate('createdBy', 'name email');
-
-  if (!task) {
-    return next(new AppError('No task found with that ID', 404));
-  }
-
-  res.status(200).json({
-    status: 'success',
-    data: {
-      task
-    }
-  });
-});
-
 // @desc    Get tasks assigned to the current user
 // @route   GET /api/tasks/assigned-to-me
 // @access  Private
@@ -582,6 +550,34 @@ exports.getMyCompletedTasks = catchAsync(async (req, res, next) => {
     assignedTo: req.user.id,
     status: 'completed'
   });
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      tasks,
+      total
+    }
+  });
+});
+
+// @desc    Get all team tasks (for organization-wide view)
+// @route   GET /api/tasks/team-tasks
+// @access  Private
+exports.getTeamTasks = catchAsync(async (req, res, next) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const skip = (page - 1) * limit;
+
+  const tasks = await Task.find()
+  .populate('assignedTo', 'name email')
+  .populate('createdBy', 'name email')
+  .populate('assignedBy', 'name email')
+  .populate('client', 'name')
+  .sort('-updatedAt')
+  .skip(skip)
+  .limit(limit);
+
+  const total = await Task.countDocuments();
 
   res.status(200).json({
     status: 'success',
