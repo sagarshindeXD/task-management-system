@@ -164,8 +164,6 @@ const Tasks: React.FC = () => {
         return 'completed';
       case 'working':
         return 'in-progress';
-      case 'in-review':
-        return 'in-progress'; // Map to in-progress for now
       case 'pending':
         return 'todo';
       default:
@@ -285,7 +283,6 @@ const Tasks: React.FC = () => {
                     >
                       <MenuItem value="pending">Pending</MenuItem>
                       <MenuItem value="working">Working</MenuItem>
-                      <MenuItem value="in-review">In Review</MenuItem>
                       <MenuItem value="done">Done</MenuItem>
                     </Select>
                   </FormControl>

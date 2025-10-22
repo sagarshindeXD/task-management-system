@@ -378,7 +378,7 @@ exports.getDashboardMetrics = catchAsync(async (req, res, next) => {
             }
           },
           inReviewTasks: {
-            $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] } // Simplified - completed tasks are considered "in review"
+            $sum: { $cond: [{ $eq: ['$status', 'in-progress'] }, 1, 0] } // In-progress tasks are considered "in review"
           }
         }
       }
@@ -446,7 +446,7 @@ exports.getDashboardMetrics = catchAsync(async (req, res, next) => {
             }
           },
           inReviewTasks: {
-            $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] } // Simplified
+            $sum: { $cond: [{ $eq: ['$status', 'in-progress'] }, 1, 0] } // In-progress tasks are considered "in review"
           }
         }
       }
