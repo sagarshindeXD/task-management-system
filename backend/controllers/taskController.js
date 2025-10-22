@@ -546,7 +546,9 @@ exports.getTeamTasks = catchAsync(async (req, res, next) => {
   const limit = parseInt(req.query.limit) || 10;
   const skip = (page - 1) * limit;
 
-  const tasks = await Task.find()
+  const tasks = await Task.find({
+    status: { $ne: 'completed' }  // Exclude completed tasks
+  })
   .populate('assignedTo', 'name email')
   .populate('createdBy', 'name email')
   .populate('assignedBy', 'name email')
@@ -555,7 +557,9 @@ exports.getTeamTasks = catchAsync(async (req, res, next) => {
   .skip(skip)
   .limit(limit);
 
-  const total = await Task.countDocuments();
+  const total = await Task.countDocuments({
+    status: { $ne: 'completed' }  // Exclude completed tasks from count
+  });
 
   res.status(200).json({
     status: 'success',
