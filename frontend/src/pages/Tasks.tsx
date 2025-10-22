@@ -287,15 +287,43 @@ const Tasks: React.FC = () => {
                     </Select>
                   </FormControl>
                 </TableCell>
-                <TableCell>
-                  <Box display="flex" gap={1}>
+                <TableCell sx={{ textAlign: 'right' }}>
+                  <Box
+                    display="flex"
+                    gap={0.5}
+                    alignItems="center"
+                    justifyContent="flex-end"
+                    sx={{
+                      minHeight: '40px',
+                      padding: '4px 0'
+                    }}
+                  >
                     <Tooltip title="Edit">
-                      <IconButton size="small" onClick={() => handleEditTask(task._id)}>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleEditTask(task._id)}
+                        sx={{
+                          padding: '6px',
+                          '&:hover': {
+                            backgroundColor: 'rgba(25, 118, 210, 0.04)'
+                          }
+                        }}
+                      >
                         <EditIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
                     <Tooltip title="Delete">
-                      <IconButton size="small" onClick={() => handleDeleteTask(task._id)} color="error">
+                      <IconButton
+                        size="small"
+                        onClick={() => handleDeleteTask(task._id)}
+                        color="error"
+                        sx={{
+                          padding: '6px',
+                          '&:hover': {
+                            backgroundColor: 'rgba(211, 47, 47, 0.04)'
+                          }
+                        }}
+                      >
                         <DeleteIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
