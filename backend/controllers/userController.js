@@ -164,7 +164,12 @@ exports.deleteMe = catchAsync(async (req, res, next) => {
 // @route   GET /api/users
 // @access  Private/Admin
 exports.getAllUsers = catchAsync(async (req, res, next) => {
+  console.log('getAllUsers called');
+  console.log('Request user:', req.user);
+  console.log('Request user role:', req.user?.role);
+
   const users = await User.find();
+  console.log('Found users in database:', users.length);
 
   res.status(200).json({
     status: 'success',
@@ -197,6 +202,12 @@ exports.deleteUserById = catchAsync(async (req, res, next) => {
   if (user.role === 'admin') {
     console.log('Attempted to delete admin user, returning 403');
     return next(new AppError('Cannot delete admin users', 403));
+  }
+
+  // Prevent deleting yourself
+  if (user._id.toString() === req.user._id.toString()) {
+    console.log('Attempted to delete self, returning 400');
+    return next(new AppError('Cannot delete your own account. Use /delete-me instead.', 400));
   }
 
   // Delete the user

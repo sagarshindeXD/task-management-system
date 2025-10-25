@@ -30,21 +30,26 @@ interface UsersResponse {
   users?: User[];
 }
 
-export const fetchUsers = createAsyncThunk('users/fetchUsers', async (_, { rejectWithValue }) => {
+export const fetchUsers = createAsyncThunk('users/fetchUsers', async (_, { rejectWithValue, getState }) => {
   try {
-    console.log('Fetching users...');
+    const { auth } = getState() as { auth: { user: any } };
+    console.log('Fetching users - current user:', auth.user);
+    console.log('Fetching users - current user role:', auth.user?.role);
+    console.log('Fetching users - current user ID:', auth.user?._id);
+    console.log('Fetching users - token exists:', !!localStorage.getItem('token'));
+
     const response = await api.get<UsersResponse>('/users');
     console.log('Raw API response:', response);
-    
+
     // Handle different response structures
     const users = response.data?.data?.users || response.data?.users || response.data || [];
     console.log('Extracted users:', users);
-    
+
     if (!Array.isArray(users)) {
       console.error('Unexpected users format:', users);
       return [];
     }
-    
+
     return users;
   } catch (error: any) {
     console.error('Error fetching users:', error);

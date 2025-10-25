@@ -88,6 +88,26 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleTestPing = async () => {
+    try {
+      console.log('Testing basic API connectivity...');
+      const response = await api.get('/users/ping');
+      console.log('Ping test response:', response.data);
+      setSnackbar({
+        open: true,
+        message: `API test successful: ${response.data.message}`,
+        severity: 'success'
+      });
+    } catch (error: any) {
+      console.error('Ping test failed:', error);
+      setSnackbar({
+        open: true,
+        message: `API test failed: ${error.response?.data?.message || error.message}`,
+        severity: 'error'
+      });
+    }
+  };
+
   const handleTestAuth = async () => {
     try {
       console.log('Testing authentication...');
@@ -103,6 +123,27 @@ const AdminDashboard = () => {
       setSnackbar({
         open: true,
         message: `Auth test failed: ${error.response?.data?.message || error.message}`,
+        severity: 'error'
+      });
+    }
+  };
+
+  const handleTestDelete = async (userId: string) => {
+    try {
+      console.log('Testing delete directly with user ID:', userId);
+      const response = await api.delete(`/users/${userId}`);
+      console.log('Direct delete test response:', response);
+      setSnackbar({
+        open: true,
+        message: `Direct delete test successful!`,
+        severity: 'success'
+      });
+    } catch (error: any) {
+      console.error('Direct delete test failed:', error);
+      console.error('Error response:', error.response);
+      setSnackbar({
+        open: true,
+        message: `Direct delete test failed: ${error.response?.data?.message || error.message}`,
         severity: 'error'
       });
     }
@@ -129,13 +170,30 @@ const AdminDashboard = () => {
       <Box display="flex" gap={2} mb={2}>
         <Button
           variant="outlined"
+          onClick={handleTestPing}
+          disabled={usersStatus === 'loading'}
+        >
+          Test API
+        </Button>
+        <Button
+          variant="outlined"
           onClick={handleTestAuth}
           disabled={usersStatus === 'loading'}
         >
-          Test Authentication
+          Test Auth
         </Button>
+        {users.length > 0 && (
+          <Button
+            variant="outlined"
+            color="warning"
+            onClick={() => handleTestDelete(users[0]._id)}
+            disabled={usersStatus === 'loading'}
+          >
+            Test Delete (First User)
+          </Button>
+        )}
         <Typography variant="body2" color="text.secondary">
-          Current role: {currentUser?.role || 'unknown'}
+          Current role: {currentUser?.role || 'unknown'} | Users: {users.length}
         </Typography>
       </Box>
 

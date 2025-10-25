@@ -25,6 +25,15 @@ router.get('/test-auth', (req, res) => {
   });
 });
 
+// Simple test endpoint (no admin required)
+router.get('/ping', (req, res) => {
+  res.json({
+    status: 'success',
+    message: 'Users API is working',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // User routes
 router.get('/me', userController.getMe);
 router.patch('/update-me', userController.updateMe);
