@@ -115,7 +115,10 @@ export const deleteClient = createAsyncThunk(
       return id;
     } catch (error: any) {
       console.log('Redux deleteClient error:', error);
-      return rejectWithValue(error.message || error.response?.data?.message || 'Failed to delete client');
+      return rejectWithValue({
+        message: error.message || error.response?.data?.message || 'Failed to delete client',
+        status: error.response?.status || 500
+      });
     }
   }
 );
@@ -211,7 +214,14 @@ const clientSlice = createSlice({
     });
     builder.addCase(deleteClient.rejected, (state, action) => {
       state.status = 'failed';
-      state.error = action.payload as string;
+      // Handle both string and object error payloads
+      if (typeof action.payload === 'string') {
+        state.error = action.payload;
+      } else if (action.payload && typeof action.payload === 'object' && 'message' in action.payload) {
+        state.error = (action.payload as { message: string }).message;
+      } else {
+        state.error = 'Failed to delete client';
+      }
     });
 
     // Update Client Status

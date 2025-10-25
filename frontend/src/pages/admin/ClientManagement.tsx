@@ -148,13 +148,21 @@ const ClientManagement = () => {
       });
     } catch (error: any) {
       console.error('Delete client failed:', error);
-      console.log('Error object structure:', JSON.stringify(error, null, 2));
+      console.log('Error object structure:', error);
 
-      // Try multiple ways to extract the error message
+      // Handle Redux Toolkit error format
+      // The error is likely the payload from rejectWithValue
       let errorMessage = 'Failed to delete client';
       let statusCode: number | undefined;
 
-      if (error?.response?.data?.message) {
+      if (typeof error === 'string') {
+        // Error is directly the message string
+        errorMessage = error;
+      } else if (error?.message && error?.status) {
+        // New Redux error format with message and status
+        errorMessage = error.message;
+        statusCode = error.status;
+      } else if (error?.response?.data?.message) {
         errorMessage = error.response.data.message;
         statusCode = error.response.status;
       } else if (error?.response?.data?.error) {
