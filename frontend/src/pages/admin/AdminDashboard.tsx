@@ -12,13 +12,15 @@ import {
   Snackbar,
   Alert,
   CircularProgress,
-  Typography
+  Typography,
+  Button
 } from '@mui/material';
 import { Delete as DeleteIcon } from '@mui/icons-material';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
 import { RootState } from '../../store/store';
 import { fetchUsers, deleteUser, selectAllUsers, selectUsersStatus, selectUsersError } from '../../features/users/userSlice';
 import { selectCurrentUser } from '../../features/auth/authSlice';
+import api from '../../utils/axios';
 
 type User = {
   _id: string;
@@ -44,10 +46,16 @@ const AdminDashboard = () => {
 
   // Debug current user information
   useEffect(() => {
+    console.log('=== ADMIN DASHBOARD DEBUG INFO ===');
     console.log('Current user:', currentUser);
     console.log('Current user role:', currentUser?.role);
+    console.log('Current user ID:', currentUser?._id);
     console.log('Users in state:', users);
-  }, [currentUser, users]);
+    console.log('Users status:', usersStatus);
+    console.log('Users error:', usersError);
+    console.log('LocalStorage token:', localStorage.getItem('token'));
+    console.log('=== END DEBUG INFO ===');
+  }, [currentUser, users, usersStatus, usersError]);
 
   // Fetch users on component mount
   useEffect(() => {
@@ -80,6 +88,26 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleTestAuth = async () => {
+    try {
+      console.log('Testing authentication...');
+      const response = await api.get('/users/test-auth');
+      console.log('Auth test response:', response.data);
+      setSnackbar({
+        open: true,
+        message: `Auth test successful! Role: ${response.data.data.user.role}`,
+        severity: 'success'
+      });
+    } catch (error: any) {
+      console.error('Auth test failed:', error);
+      setSnackbar({
+        open: true,
+        message: `Auth test failed: ${error.response?.data?.message || error.message}`,
+        severity: 'error'
+      });
+    }
+  };
+
   const handleCloseSnackbar = () => {
     setSnackbar(prev => ({ ...prev, open: false }));
   };
@@ -97,6 +125,19 @@ const AdminDashboard = () => {
       <Typography variant="h4" gutterBottom>
         User Management
       </Typography>
+
+      <Box display="flex" gap={2} mb={2}>
+        <Button
+          variant="outlined"
+          onClick={handleTestAuth}
+          disabled={usersStatus === 'loading'}
+        >
+          Test Authentication
+        </Button>
+        <Typography variant="body2" color="text.secondary">
+          Current role: {currentUser?.role || 'unknown'}
+        </Typography>
+      </Box>
 
       {usersError && (
         <Alert severity="error" sx={{ mb: 2 }}>

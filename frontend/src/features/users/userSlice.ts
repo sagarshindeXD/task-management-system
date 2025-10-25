@@ -92,13 +92,36 @@ export const deleteUser = createAsyncThunk<string, string, { state: RootState; r
   async (userId, { rejectWithValue }) => {
     try {
       console.log('Making DELETE request to:', `/users/${userId}`);
-      await api.delete(`/users/${userId}`);
+      console.log('API base URL:', api.defaults.baseURL);
+
+      const response = await api.delete(`/users/${userId}`);
       console.log('DELETE request successful for user:', userId);
+      console.log('Response status:', response.status);
       return userId;
     } catch (error: any) {
       console.error('DELETE request failed:', error);
+      console.error('Error name:', error.name);
+      console.error('Error message:', error.message);
       console.error('Error response:', error.response);
-      return rejectWithValue(error.response?.data?.message || 'Failed to delete user');
+      console.error('Error status:', error.response?.status);
+      console.error('Error data:', error.response?.data);
+
+      // More detailed error extraction
+      if (error.response?.data) {
+        if (typeof error.response.data === 'string') {
+          return rejectWithValue(error.response.data);
+        } else if (error.response.data.message) {
+          return rejectWithValue(error.response.data.message);
+        } else if (error.response.data.error) {
+          return rejectWithValue(error.response.data.error);
+        }
+      }
+
+      if (error.message) {
+        return rejectWithValue(error.message);
+      }
+
+      return rejectWithValue('Failed to delete user - unknown error');
     }
   }
 );

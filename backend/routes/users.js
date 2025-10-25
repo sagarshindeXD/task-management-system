@@ -12,6 +12,19 @@ router.post('/login', userController.login);
 // Protect all routes after this middleware
 router.use(protect);
 
+// Test endpoint to check authentication and role
+router.get('/test-auth', (req, res) => {
+  console.log('Test auth endpoint called');
+  console.log('User:', req.user);
+  res.json({
+    status: 'success',
+    data: {
+      user: req.user,
+      message: 'Authentication working'
+    }
+  });
+});
+
 // User routes
 router.get('/me', userController.getMe);
 router.patch('/update-me', userController.updateMe);

@@ -48,6 +48,8 @@ api.interceptors.request.use(
       config.headers = config.headers || {};
       config.headers.Authorization = `Bearer ${token}`;
     }
+    console.log('Making request to:', config.method?.toUpperCase(), config.url);
+    console.log('Request headers:', config.headers);
     return config;
   },
   (error) => {
@@ -59,6 +61,10 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    console.error('Axios response error:', error);
+    console.error('Error config:', error.config);
+    console.error('Error response:', error.response);
+
     if (error.response?.status === 401) {
       // Check if this is a token expiration issue
       const token = localStorage.getItem('token');
