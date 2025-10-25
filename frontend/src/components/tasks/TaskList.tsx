@@ -34,12 +34,14 @@ const statusColors = {
   todo: 'default',
   'in-progress': 'primary',
   completed: 'success',
+  overdue: 'error',
 } as const;
 
 const statusOptions = [
   { value: 'todo', label: 'To Do' },
   { value: 'in-progress', label: 'In Progress' },
   { value: 'completed', label: 'Completed' },
+  { value: 'overdue', label: 'Overdue' },
 ];
 
 export const TaskList: React.FC<TaskListProps> = ({ tasks, onEdit, onDelete }) => {
