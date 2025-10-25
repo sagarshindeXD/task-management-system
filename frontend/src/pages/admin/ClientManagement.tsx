@@ -62,8 +62,6 @@ const ClientManagement = () => {
   });
   const [formData, setFormData] = useState({
     name: '',
-    email: '',
-    phone: '',
   });
 
   const { token } = useAppSelector((state: RootState) => state.auth);
@@ -196,16 +194,14 @@ const ClientManagement = () => {
   // Dialog handlers
   const handleOpenAddDialog = () => {
     setCurrentClient(null);
-    setFormData({ name: '', email: '', phone: '' });
+    setFormData({ name: '' });
     setOpenDialog(true);
   };
 
   const handleOpenEditDialog = (client: Client) => {
     setCurrentClient(client);
     setFormData({
-      name: client.name,
-      email: client.email || '',
-      phone: client.phone || ''
+      name: client.name
     });
     setOpenDialog(true);
   };
@@ -213,7 +209,7 @@ const ClientManagement = () => {
   const handleCloseDialog = () => {
     setOpenDialog(false);
     setCurrentClient(null);
-    setFormData({ name: '', email: '', phone: '' });
+    setFormData({ name: '' });
   };
 
   const handleOpenDeleteDialog = (client: Client) => {
@@ -291,8 +287,6 @@ const ClientManagement = () => {
           <TableHead>
             <TableRow>
               <TableCell>Name</TableCell>
-              <TableCell>Email</TableCell>
-              <TableCell>Phone</TableCell>
               <TableCell>Status</TableCell>
               <TableCell>Created At</TableCell>
               <TableCell>Actions</TableCell>
@@ -301,15 +295,13 @@ const ClientManagement = () => {
           <TableBody>
             {clients.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} align="center">
+                <TableCell colSpan={4} align="center">
                   No clients found
                 </TableCell>
               </TableRow>
             ) : clients.map((client) => (
               <TableRow key={client._id}>
                 <TableCell>{client.name}</TableCell>
-                <TableCell>{client.email || '-'}</TableCell>
-                <TableCell>{client.phone || '-'}</TableCell>
                 <TableCell>
                   <Chip 
                     label={client.isActive ? 'Active' : 'Inactive'} 
@@ -364,23 +356,6 @@ const ClientManagement = () => {
               onChange={handleInputChange}
               margin="normal"
               required
-            />
-            <TextField
-              fullWidth
-              label="Email"
-              name="email"
-              type="email"
-              value={formData.email}
-              onChange={handleInputChange}
-              margin="normal"
-            />
-            <TextField
-              fullWidth
-              label="Phone"
-              name="phone"
-              value={formData.phone}
-              onChange={handleInputChange}
-              margin="normal"
             />
           </DialogContent>
           <DialogActions>
