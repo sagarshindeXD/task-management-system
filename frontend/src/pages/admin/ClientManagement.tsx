@@ -148,9 +148,10 @@ const ClientManagement = () => {
       });
     } catch (error: any) {
       console.error('Delete client failed:', error);
+      const errorMessage = error?.message || 'Failed to delete client';
       setSnackbar({
         open: true,
-        message: error?.message || 'Failed to delete client',
+        message: errorMessage,
         severity: 'error'
       });
     }

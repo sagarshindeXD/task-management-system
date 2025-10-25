@@ -1,4 +1,5 @@
 const Client = require('../models/Client');
+const Task = require('../models/Task');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/AppError');
 
@@ -88,6 +89,16 @@ exports.updateClient = catchAsync(async (req, res, next) => {
 // @route   DELETE /api/clients/:id
 // @access  Private
 exports.deleteClient = catchAsync(async (req, res, next) => {
+  // First, check if there are any tasks associated with this client
+  const tasksCount = await Task.countDocuments({ client: req.params.id });
+
+  if (tasksCount > 0) {
+    return next(new AppError(
+      `Cannot delete client because it has ${tasksCount} associated task${tasksCount > 1 ? 's' : ''}. Please delete or reassign these tasks first.`,
+      400
+    ));
+  }
+
   const client = await Client.findOneAndDelete({
     _id: req.params.id,
     createdBy: req.user._id
