@@ -148,10 +148,21 @@ const ClientManagement = () => {
       });
     } catch (error: any) {
       console.error('Delete client failed:', error);
-      const errorMessage = error?.message || 'Failed to delete client';
+      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to delete client';
+      const statusCode = error?.response?.status || error?.status;
+
+      let displayMessage = errorMessage;
+      if (statusCode === 404) {
+        displayMessage = 'Client not found or you do not have permission to delete it. It may have been deleted by another user.';
+      } else if (statusCode === 400) {
+        displayMessage = errorMessage; // Show the specific validation error (e.g., has associated tasks)
+      } else if (statusCode === 403) {
+        displayMessage = 'You do not have permission to delete this client.';
+      }
+
       setSnackbar({
         open: true,
-        message: errorMessage,
+        message: displayMessage,
         severity: 'error'
       });
     }

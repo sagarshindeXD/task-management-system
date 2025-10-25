@@ -88,67 +88,92 @@ export const fetchClients = async (token: string): Promise<Client[]> => {
 export const createClient = async (clientData: Omit<Client, '_id'>, token: string): Promise<Client> => {
   const response = await fetch(`${API_BASE_URL}/clients`, {
     method: 'POST',
-    headers: { 
+    headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(clientData),
   });
-  
+
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to create client');
+    let errorMessage = 'Failed to create client';
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.message || errorData.error || `HTTP error! status: ${response.status}`;
+    } catch (parseError) {
+      errorMessage = `Failed to create client. Status: ${response.status}`;
+    }
+    throw new Error(errorMessage);
   }
-  
+
   return response.json();
 };
 
 export const updateClient = async (id: string, clientData: Partial<Client>, token: string): Promise<Client> => {
   const response = await fetch(`${API_BASE_URL}/clients/${id}`, {
     method: 'PUT',
-    headers: { 
+    headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(clientData),
   });
-  
+
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to update client');
+    let errorMessage = 'Failed to update client';
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.message || errorData.error || `HTTP error! status: ${response.status}`;
+    } catch (parseError) {
+      errorMessage = `Failed to update client. Status: ${response.status}`;
+    }
+    throw new Error(errorMessage);
   }
-  
+
   return response.json();
 };
 
 export const deleteClient = async (id: string, token: string): Promise<void> => {
   const response = await fetch(`${API_BASE_URL}/clients/${id}`, {
     method: 'DELETE',
-    headers: { 
+    headers: {
       'Authorization': `Bearer ${token}`,
     },
   });
-  
+
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to delete client');
+    let errorMessage = 'Failed to delete client';
+    try {
+      const errorData = await response.json();
+      // Backend returns { status: "fail", message: "..." } or { error: "..." }
+      errorMessage = errorData.message || errorData.error || `HTTP error! status: ${response.status}`;
+    } catch (parseError) {
+      errorMessage = `Failed to delete client. Status: ${response.status}`;
+    }
+    throw new Error(errorMessage);
   }
 };
 
 export const updateClientStatus = async (id: string, isActive: boolean, token: string): Promise<Client> => {
   const response = await fetch(`${API_BASE_URL}/clients/${id}/status`, {
     method: 'PATCH',
-    headers: { 
+    headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ isActive }),
   });
-  
+
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to update client status');
+    let errorMessage = 'Failed to update client status';
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.message || errorData.error || `HTTP error! status: ${response.status}`;
+    } catch (parseError) {
+      errorMessage = `Failed to update client status. Status: ${response.status}`;
+    }
+    throw new Error(errorMessage);
   }
-  
+
   return response.json();
 };
