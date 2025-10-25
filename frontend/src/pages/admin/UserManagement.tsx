@@ -19,10 +19,12 @@ import {
   MenuItem,
   Snackbar,
   Alert,
+  CircularProgress,
 } from '@mui/material';
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
-import { useAppDispatch, useAppSelector } from '../../hooks/reduxHooks';
+import { useAppDispatch, useAppSelector } from '../../app/hooks';
 import { RootState } from '../../store/store';
+import { fetchUsers, selectAllUsers, selectUsersStatus, selectUsersError } from '../../features/users/userSlice';
 
 interface User {
   _id: string;
@@ -33,7 +35,11 @@ interface User {
 }
 
 const UserManagement = () => {
-  const [users, setUsers] = useState<User[]>([]);
+  const dispatch = useAppDispatch();
+  const users = useAppSelector(selectAllUsers);
+  const usersStatus = useAppSelector(selectUsersStatus);
+  const usersError = useAppSelector(selectUsersError);
+
   const [openDialog, setOpenDialog] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -45,31 +51,18 @@ const UserManagement = () => {
     role: 'user',
   });
 
-  const { token } = useAppSelector((state: RootState) => state.auth);
-
-  // TODO: Replace with actual API call to fetch users
+  // Fetch users when component mounts
   useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        // const response = await fetch('/api/users', {
-        //   headers: { Authorization: `Bearer ${token}` },
-        // });
-        // const data = await response.json();
-        // setUsers(data);
-        
-        // Mock data for now
-        setUsers([
-          { _id: '1', name: 'Admin User', email: 'admin@example.com', role: 'admin', createdAt: new Date().toISOString() },
-          { _id: '2', name: 'Regular User', email: 'user@example.com', role: 'user', createdAt: new Date().toISOString() },
-        ]);
-      } catch (error) {
-        console.error('Error fetching users:', error);
-        setSnackbar({ open: true, message: 'Failed to fetch users', severity: 'error' });
-      }
-    };
+    if (usersStatus === 'idle') {
+      dispatch(fetchUsers());
+    } else if (usersStatus === 'failed') {
+      setSnackbar({ open: true, message: usersError || 'Failed to fetch users', severity: 'error' });
+    }
+  }, [dispatch, usersStatus, usersError]);
 
-    fetchUsers();
-  }, [token]);
+  const handleRefreshUsers = () => {
+    dispatch(fetchUsers());
+  };
 
   const handleOpenAddDialog = () => {
     setCurrentUser(null);
@@ -119,9 +112,7 @@ const UserManagement = () => {
         setSnackbar({ open: true, message: 'User created successfully', severity: 'success' });
       }
       setOpenDialog(false);
-      // Refresh users list
-      // const response = await fetchUsers();
-      // setUsers(response.data);
+      handleRefreshUsers(); // Refresh users list
     } catch (error) {
       console.error('Error saving user:', error);
       setSnackbar({ open: true, message: 'Failed to save user', severity: 'error' });
@@ -145,9 +136,7 @@ const UserManagement = () => {
       // await deleteUser(currentUser._id, token);
       setSnackbar({ open: true, message: 'User deleted successfully', severity: 'success' });
       setOpenDeleteDialog(false);
-      // Refresh users list
-      // const response = await fetchUsers();
-      // setUsers(response.data);
+      handleRefreshUsers(); // Refresh users list
     } catch (error) {
       console.error('Error deleting user:', error);
       setSnackbar({ open: true, message: 'Failed to delete user', severity: 'error' });
@@ -186,31 +175,53 @@ const UserManagement = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {users.map((user) => (
-              <TableRow key={user._id}>
-                <TableCell>{user.name}</TableCell>
-                <TableCell>{user.email}</TableCell>
-                <TableCell>{user.role}</TableCell>
-                <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
-                <TableCell>
-                  <IconButton
-                    color="primary"
-                    onClick={() => handleOpenEditDialog(user)}
-                    size="small"
-                  >
-                    <EditIcon />
-                  </IconButton>
-                  <IconButton
-                    color="error"
-                    onClick={() => handleOpenDeleteDialog(user)}
-                    size="small"
-                    disabled={user.role === 'admin'}
-                  >
-                    <DeleteIcon />
-                  </IconButton>
+            {usersStatus === 'loading' ? (
+              <TableRow>
+                <TableCell colSpan={5} align="center">
+                  <CircularProgress />
                 </TableCell>
               </TableRow>
-            ))}
+            ) : usersStatus === 'failed' ? (
+              <TableRow>
+                <TableCell colSpan={5} align="center">
+                  <Typography color="error">
+                    Error: {usersError || 'Failed to load users'}
+                  </Typography>
+                </TableCell>
+              </TableRow>
+            ) : users.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} align="center">
+                  <Typography>No users found</Typography>
+                </TableCell>
+              </TableRow>
+            ) : (
+              users.map((user: User) => (
+                <TableRow key={user._id}>
+                  <TableCell>{user.name}</TableCell>
+                  <TableCell>{user.email}</TableCell>
+                  <TableCell>{user.role}</TableCell>
+                  <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
+                  <TableCell>
+                    <IconButton
+                      color="primary"
+                      onClick={() => handleOpenEditDialog(user)}
+                      size="small"
+                    >
+                      <EditIcon />
+                    </IconButton>
+                    <IconButton
+                      color="error"
+                      onClick={() => handleOpenDeleteDialog(user)}
+                      size="small"
+                      disabled={user.role === 'admin'}
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </TableContainer>

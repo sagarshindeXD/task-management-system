@@ -77,4 +77,8 @@ const userSlice = createSlice({
   },
 });
 
+export const selectAllUsers = (state: any) => state.users.users;
+export const selectUsersStatus = (state: any) => state.users.status;
+export const selectUsersError = (state: any) => state.users.error;
+
 export default userSlice.reducer;

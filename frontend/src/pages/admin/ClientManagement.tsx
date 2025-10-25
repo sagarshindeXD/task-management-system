@@ -356,42 +356,32 @@ const ClientManagement = () => {
             {currentClient ? 'Edit Client' : 'Add New Client'}
           </DialogTitle>
           <DialogContent>
-       return (
-    <Box 
-      component="main"
-      id="main-content"
-      ref={mainContentRef}
-      sx={{ p: 3 }}
-      tabIndex={-1}
-      aria-labelledby="client-dialog-title"
-    >
-              <TextField
-                fullWidth
-                label="Name"
-                name="name"
-                value={formData.name}
-                onChange={handleInputChange}
-                margin="normal"
-                required
-              />
-              <TextField
-                fullWidth
-                label="Email"
-                name="email"
-                type="email"
-                value={formData.email}
-                onChange={handleInputChange}
-                margin="normal"
-              />
-              <TextField
-                fullWidth
-                label="Phone"
-                name="phone"
-                value={formData.phone}
-                onChange={handleInputChange}
-                margin="normal"
-              />
-            </Box>
+            <TextField
+              fullWidth
+              label="Name"
+              name="name"
+              value={formData.name}
+              onChange={handleInputChange}
+              margin="normal"
+              required
+            />
+            <TextField
+              fullWidth
+              label="Email"
+              name="email"
+              type="email"
+              value={formData.email}
+              onChange={handleInputChange}
+              margin="normal"
+            />
+            <TextField
+              fullWidth
+              label="Phone"
+              name="phone"
+              value={formData.phone}
+              onChange={handleInputChange}
+              margin="normal"
+            />
           </DialogContent>
           <DialogActions>
             <Button onClick={handleCloseDialog}>Cancel</Button>

@@ -2,12 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
+import { useAuth } from '../context/AuthContext';
 import { useAppDispatch, useAppSelector } from '../app/hooks';
 import { RootState } from '../store/store';
 import { User } from '../features/users/userSlice';
 import { createTask, fetchTasks, fetchAssignedTasks } from '../features/tasks/taskSlice';
 import { fetchUsers } from '../features/users/userSlice';
-import { fetchClients, selectAllClients } from '../features/clients/clientSlice';
+import { fetchClients } from '../features/clients/clientSlice';
 import {
   Box,
   Button,
@@ -56,10 +57,11 @@ interface TaskFormValues {
 const NewTask = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [status, setStatus] = useState<{ success: boolean; error: string | null }>({ success: false, error: null });
   const { users = [], status: userStatus } = useAppSelector((state: RootState) => state.users);
-  const clients = useAppSelector(selectAllClients);
+  const clients = useAppSelector((state: RootState) => state.clients.clients);
   const clientsStatus = useAppSelector((state: RootState) => state.clients.status);
   const taskStatus = useAppSelector((state: RootState) => state.tasks.status);
   const taskError = useAppSelector((state: RootState) => state.tasks.error);
@@ -234,7 +236,19 @@ const NewTask = () => {
             margin="normal"
             error={formik.touched.client && Boolean(formik.errors.client)}
           >
-            <InputLabel id="client-label">Client</InputLabel>
+            <Box display="flex" alignItems="center" justifyContent="space-between">
+              <InputLabel id="client-label">Client</InputLabel>
+              {user?.role === 'admin' && (
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() => navigate('/admin/clients')}
+                  sx={{ minWidth: 'auto', px: 2 }}
+                >
+                  New Client
+                </Button>
+              )}
+            </Box>
             <Select
               labelId="client-label"
               id="client"
