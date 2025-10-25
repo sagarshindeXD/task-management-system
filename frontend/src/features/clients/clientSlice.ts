@@ -81,7 +81,7 @@ export const createClient = createAsyncThunk(
         isActive: newClient.isActive ?? true
       } as Client;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to create client');
+      return rejectWithValue(error.message || error.response?.data?.message || 'Failed to create client');
     }
   }
 );
@@ -99,7 +99,7 @@ export const updateClient = createAsyncThunk(
         updatedAt: updatedClient.updatedAt || new Date().toISOString()
       } as Client;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to update client');
+      return rejectWithValue(error.message || error.response?.data?.message || 'Failed to update client');
     }
   }
 );
@@ -114,7 +114,8 @@ export const deleteClient = createAsyncThunk(
       await deleteClientService(id, token);
       return id;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to delete client');
+      console.log('Redux deleteClient error:', error);
+      return rejectWithValue(error.message || error.response?.data?.message || 'Failed to delete client');
     }
   }
 );
@@ -132,7 +133,7 @@ export const updateClientStatus = createAsyncThunk(
         updatedAt: updatedClient.updatedAt || new Date().toISOString()
       } as Client;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to update client status');
+      return rejectWithValue(error.message || error.response?.data?.message || 'Failed to update client status');
     }
   }
 );

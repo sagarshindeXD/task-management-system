@@ -7,12 +7,12 @@
 6 silly config load:file:C:\Users\sagar\AppData\Roaming\npm\etc\npmrc
 7 verbose title npm install
 8 verbose argv "install"
-9 verbose logfile logs-max:10 dir:D:\Startup Surge\task-management-system\frontend\.npm-cache\_logs\2025-10-25T12_11_17_710Z-
-10 verbose logfile D:\Startup Surge\task-management-system\frontend\.npm-cache\_logs\2025-10-25T12_11_17_710Z-debug-0.log
-11 silly logfile done cleaning log files
+9 verbose logfile logs-max:10 dir:D:\Startup Surge\task-management-system\frontend\.npm-cache\_logs\2025-10-25T17_13_22_124Z-
+10 verbose logfile D:\Startup Surge\task-management-system\frontend\.npm-cache\_logs\2025-10-25T17_13_22_124Z-debug-0.log
+11 silly logfile start cleaning logs, removing 1 files
 12 silly packumentCache heap:4345298944 maxSize:1086324736 maxEntrySize:543162368
-13 silly idealTree buildDeps
-14 verbose shrinkwrap failed to load node_modules/.package-lock.json out of date, updated: node_modules
+13 silly logfile done cleaning log files
+14 silly idealTree buildDeps
 15 silly reify moves {}
 16 silly audit bulk request {
 16 silly audit   '@adobe/css-tools': [ '4.4.4' ],
@@ -1240,7 +1240,7 @@
 18 silly reify mark deleted [
 18 silly reify   'D:\\Startup Surge\\task-management-system\\frontend\\node_modules\\fsevents'
 18 silly reify ]
-19 http fetch POST 200 https://registry.npmjs.org/-/npm/v1/security/advisories/bulk 1527ms
+19 http fetch POST 200 https://registry.npmjs.org/-/npm/v1/security/advisories/bulk 1705ms
 20 silly audit report {
 20 silly audit report   'nth-check': [
 20 silly audit report     {
@@ -1288,29 +1288,29 @@
 21 silly packumentCache corgi:https://registry.npmjs.org/nth-check cache-miss
 22 silly packumentCache corgi:https://registry.npmjs.org/postcss cache-miss
 23 silly packumentCache corgi:https://registry.npmjs.org/webpack-dev-server cache-miss
-24 http fetch GET 200 https://registry.npmjs.org/nth-check 32ms (cache stale)
+24 http fetch GET 200 https://registry.npmjs.org/nth-check 31ms (cache stale)
 25 silly packumentCache corgi:https://registry.npmjs.org/nth-check set size:10078 disposed:false
-26 http fetch GET 200 https://registry.npmjs.org/webpack-dev-server 34ms (cache stale)
-27 silly packumentCache corgi:https://registry.npmjs.org/webpack-dev-server set size:455204 disposed:false
-28 http fetch GET 200 https://registry.npmjs.org/postcss 63ms (cache stale)
-29 silly packumentCache corgi:https://registry.npmjs.org/postcss set size:337129 disposed:false
+26 http fetch GET 200 https://registry.npmjs.org/postcss 33ms (cache stale)
+27 silly packumentCache corgi:https://registry.npmjs.org/postcss set size:337129 disposed:false
+28 http fetch GET 200 https://registry.npmjs.org/webpack-dev-server 40ms (cache stale)
+29 silly packumentCache corgi:https://registry.npmjs.org/webpack-dev-server set size:455204 disposed:false
 30 silly packumentCache corgi:https://registry.npmjs.org/css-select cache-miss
-31 http fetch GET 200 https://registry.npmjs.org/css-select 7ms (cache stale)
+31 http fetch GET 200 https://registry.npmjs.org/css-select 8ms (cache stale)
 32 silly packumentCache corgi:https://registry.npmjs.org/css-select set size:48469 disposed:false
 33 silly packumentCache corgi:https://registry.npmjs.org/resolve-url-loader cache-miss
-34 http fetch GET 200 https://registry.npmjs.org/resolve-url-loader 9ms (cache stale)
+34 http fetch GET 200 https://registry.npmjs.org/resolve-url-loader 11ms (cache stale)
 35 silly packumentCache corgi:https://registry.npmjs.org/resolve-url-loader set size:61938 disposed:false
 36 silly packumentCache corgi:https://registry.npmjs.org/@pmmmwh%2freact-refresh-webpack-plugin cache-miss
 37 silly packumentCache corgi:https://registry.npmjs.org/react-scripts cache-miss
-38 http fetch GET 200 https://registry.npmjs.org/react-scripts 10ms (cache stale)
-39 silly packumentCache corgi:https://registry.npmjs.org/react-scripts set size:342451 disposed:false
-40 http fetch GET 200 https://registry.npmjs.org/@pmmmwh%2freact-refresh-webpack-plugin 43ms (cache stale)
-41 silly packumentCache corgi:https://registry.npmjs.org/@pmmmwh%2freact-refresh-webpack-plugin set size:203780 disposed:false
+38 http fetch GET 200 https://registry.npmjs.org/@pmmmwh%2freact-refresh-webpack-plugin 12ms (cache stale)
+39 silly packumentCache corgi:https://registry.npmjs.org/@pmmmwh%2freact-refresh-webpack-plugin set size:203780 disposed:false
+40 http fetch GET 200 https://registry.npmjs.org/react-scripts 19ms (cache stale)
+41 silly packumentCache corgi:https://registry.npmjs.org/react-scripts set size:342451 disposed:false
 42 silly packumentCache corgi:https://registry.npmjs.org/svgo cache-miss
-43 http fetch GET 200 https://registry.npmjs.org/svgo 9ms (cache stale)
+43 http fetch GET 200 https://registry.npmjs.org/svgo 11ms (cache stale)
 44 silly packumentCache corgi:https://registry.npmjs.org/svgo set size:133164 disposed:false
 45 silly packumentCache corgi:https://registry.npmjs.org/react-app-rewired cache-miss
-46 http fetch GET 200 https://registry.npmjs.org/react-app-rewired 8ms (cache stale)
+46 http fetch GET 200 https://registry.npmjs.org/react-app-rewired 11ms (cache stale)
 47 silly packumentCache corgi:https://registry.npmjs.org/react-app-rewired set size:68929 disposed:false
 48 silly packumentCache corgi:https://registry.npmjs.org/@svgr%2fplugin-svgo cache-miss
 49 http fetch GET 200 https://registry.npmjs.org/@svgr%2fplugin-svgo 8ms (cache stale)

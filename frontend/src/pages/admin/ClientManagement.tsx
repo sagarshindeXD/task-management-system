@@ -148,8 +148,28 @@ const ClientManagement = () => {
       });
     } catch (error: any) {
       console.error('Delete client failed:', error);
-      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to delete client';
-      const statusCode = error?.response?.status || error?.status;
+      console.log('Error object structure:', JSON.stringify(error, null, 2));
+
+      // Try multiple ways to extract the error message
+      let errorMessage = 'Failed to delete client';
+      let statusCode: number | undefined;
+
+      if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+        statusCode = error.response.status;
+      } else if (error?.response?.data?.error) {
+        errorMessage = error.response.data.error;
+        statusCode = error.response.status;
+      } else if (error?.message) {
+        errorMessage = error.message;
+        statusCode = error?.status || error?.response?.status;
+      } else if (error?.payload) {
+        // Redux Toolkit error format
+        errorMessage = error.payload;
+      }
+
+      console.log('Extracted error message:', errorMessage);
+      console.log('Status code:', statusCode);
 
       let displayMessage = errorMessage;
       if (statusCode === 404) {

@@ -134,6 +134,8 @@ export const updateClient = async (id: string, clientData: Partial<Client>, toke
 };
 
 export const deleteClient = async (id: string, token: string): Promise<void> => {
+  console.log('deleteClient service called with ID:', id);
+
   const response = await fetch(`${API_BASE_URL}/clients/${id}`, {
     method: 'DELETE',
     headers: {
@@ -141,15 +143,25 @@ export const deleteClient = async (id: string, token: string): Promise<void> => 
     },
   });
 
+  console.log('Delete response status:', response.status);
+  console.log('Delete response headers:', Object.fromEntries(response.headers.entries()));
+
   if (!response.ok) {
     let errorMessage = 'Failed to delete client';
+    let errorData: any = {};
+
     try {
-      const errorData = await response.json();
+      errorData = await response.json();
+      console.log('Delete error response data:', errorData);
+
       // Backend returns { status: "fail", message: "..." } or { error: "..." }
       errorMessage = errorData.message || errorData.error || `HTTP error! status: ${response.status}`;
     } catch (parseError) {
+      console.error('Failed to parse error response:', parseError);
       errorMessage = `Failed to delete client. Status: ${response.status}`;
     }
+
+    console.log('Throwing error with message:', errorMessage);
     throw new Error(errorMessage);
   }
 };
