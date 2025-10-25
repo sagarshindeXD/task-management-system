@@ -29,42 +29,47 @@ import {
   createClient,
   updateClient,
   deleteClient as deleteClientApi,
-  updateClientStatus,
   Client
 } from '../../services/clientService';
+import { deleteClient, selectAllClients, selectClientsStatus, selectClientsError, updateClientStatus } from '../../features/clients/clientSlice';
 
 
 const ClientManagement = () => {
-  // State management
-  const [clients, setClients] = useState<Client[]>([]);
+  // Redux state
+  const clients = useAppSelector(selectAllClients);
+  const clientsStatus = useAppSelector(selectClientsStatus);
+  const clientsError = useAppSelector(selectClientsError);
+
+  // Local state
   const [openDialog, setOpenDialog] = useState(false);
-  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
-  
-  // Use the a11y dialog hook
-  const { rootRef, mainContentRef } = useA11yDialog(false);
-  
-  // Update the dialog state when open states change
-  useEffect(() => {
-    if (rootRef.current && mainContentRef.current) {
-      mainContentRef.current.inert = openDialog || openDeleteDialog;
-      if (openDialog || openDeleteDialog) {
-        mainContentRef.current.setAttribute('aria-hidden', 'true');
-      } else {
-        mainContentRef.current.removeAttribute('aria-hidden');
-      }
-    }
-  }, [openDialog, openDeleteDialog, rootRef, mainContentRef]);
   const [currentClient, setCurrentClient] = useState<Client | null>(null);
-  const [snackbar, setSnackbar] = useState({ 
-    open: false, 
-    message: '', 
-    severity: 'success' as 'success' | 'error' | 'warning' | 'info' 
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'success' as 'success' | 'error' | 'warning' | 'info'
   });
   const [formData, setFormData] = useState({
     name: '',
   });
 
+  // Use the a11y dialog hook
+  const { rootRef, mainContentRef } = useA11yDialog(false);
+
+  // Update the dialog state when open states change
+  useEffect(() => {
+    if (rootRef.current && mainContentRef.current) {
+      mainContentRef.current.inert = openDialog;
+      if (openDialog) {
+        mainContentRef.current.setAttribute('aria-hidden', 'true');
+      } else {
+        mainContentRef.current.removeAttribute('aria-hidden');
+      }
+    }
+  }, [openDialog, rootRef, mainContentRef]);
+
   const { token } = useAppSelector((state: RootState) => state.auth);
+
+  const dispatch = useAppDispatch();
 
   // Log clients when they change
   useEffect(() => {
@@ -73,30 +78,10 @@ const ClientManagement = () => {
 
   // Fetch clients on component mount and when token changes
   useEffect(() => {
-    const loadClients = async () => {
-      if (!token) return;
-      
-      try {
-        console.log('Fetching clients...');
-        const clientsData = await fetchClients(token);
-        // Ensure clientsData is an array before setting it
-        const clientsList = Array.isArray(clientsData) ? clientsData : [];
-        console.log('Setting clients list:', clientsList);
-        setClients(clientsList);
-      } catch (error) {
-        console.error('Error fetching clients:', error);
-        setSnackbar({
-          open: true,
-          message: 'Failed to load clients',
-          severity: 'error'
-        });
-        // Set to empty array on error to prevent map error
-        setClients([]);
-      }
-    };
-
-    loadClients();
-  }, [token]);
+    if (token) {
+      dispatch(fetchClients());
+    }
+  }, [token, dispatch]);
 
   // Handle form input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -134,11 +119,6 @@ const ClientManagement = () => {
         });
       }
 
-      // Refresh clients list
-      console.log('Refreshing clients list...');
-      const clientsData = await fetchClients(token);
-      console.log('Refreshed clients data:', clientsData);
-      setClients(Array.isArray(clientsData) ? clientsData : []);
       handleCloseDialog();
     } catch (error) {
       console.error('Error saving client:', error);
@@ -151,42 +131,28 @@ const ClientManagement = () => {
   };
 
   // Handle client deletion
-  const handleDeleteClient = async () => {
-    if (!currentClient?._id) {
-      setSnackbar({ 
-        open: true, 
-        message: 'No client selected for deletion', 
-        severity: 'error' 
-      });
-      return;
-    }
+  const handleDeleteClient = async (clientId: string) => {
+    console.log('Attempting to delete client:', clientId);
 
-    if (!token) {
-      setSnackbar({ 
-        open: true, 
-        message: 'Authentication token is missing', 
-        severity: 'error' 
-      });
+    if (!window.confirm('Are you sure you want to delete this client? This action cannot be undone.')) {
       return;
     }
 
     try {
-      await deleteClientApi(currentClient._id, token);
-      setSnackbar({ 
-        open: true, 
-        message: 'Client deleted successfully', 
-        severity: 'success' 
+      console.log('Dispatching deleteClient action...');
+      await dispatch(deleteClient(clientId)).unwrap();
+      console.log('Client deleted successfully');
+      setSnackbar({
+        open: true,
+        message: 'Client deleted successfully',
+        severity: 'success'
       });
-      // Refresh the clients list
-      const clients = await fetchClients(token);
-      setClients(clients);
-      setOpenDeleteDialog(false);
-      setCurrentClient(null);
-    } catch (error) {
-      setSnackbar({ 
-        open: true, 
-        message: error instanceof Error ? error.message : 'Failed to delete client', 
-        severity: 'error' 
+    } catch (error: any) {
+      console.error('Delete client failed:', error);
+      setSnackbar({
+        open: true,
+        message: error?.message || 'Failed to delete client',
+        severity: 'error'
       });
     }
   };
@@ -212,16 +178,6 @@ const ClientManagement = () => {
     setFormData({ name: '' });
   };
 
-  const handleOpenDeleteDialog = (client: Client) => {
-    setCurrentClient(client);
-    setOpenDeleteDialog(true);
-  };
-
-  const handleCloseDeleteDialog = () => {
-    setOpenDeleteDialog(false);
-    setCurrentClient(null);
-  };
-
   const handleCloseSnackbar = () => {
     setSnackbar(prev => ({ ...prev, open: false }));
   };
@@ -229,30 +185,16 @@ const ClientManagement = () => {
   // Toggle client active status
   const handleToggleStatus = async (client: Client) => {
     if (!client._id || !token) return;
-    
+
     const newStatus = !client.isActive;
-    
+
     try {
-      // Optimistically update the UI
-      setClients(prevClients => 
-        prevClients.map(c => 
-          c._id === client._id ? { ...c, isActive: newStatus } : c
-        )
-      );
-      
-      // Make the API call
-      const updatedClient = await updateClientStatus(client._id, newStatus, token);
-      
-      // Update with the actual response from the server
-      setClients(prevClients => 
-        prevClients.map(c => 
-          c._id === client._id ? { ...c, isActive: updatedClient.isActive } : c
-        )
-      );
-      
+      // Make the API call using Redux
+      await dispatch(updateClientStatus({ id: client._id, isActive: newStatus }));
+
       setSnackbar({
         open: true,
-        message: `Client ${updatedClient.isActive ? 'activated' : 'deactivated'} successfully`,
+        message: `Client ${newStatus ? 'activated' : 'deactivated'} successfully`,
         severity: 'success'
       });
     } catch (error) {
@@ -280,9 +222,15 @@ const ClientManagement = () => {
         >
           Add Client
         </Button>
-      </Box>
+        </Box>
 
-      <TableContainer component={Paper}>
+        {clientsError && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {clientsError}
+          </Alert>
+        )}
+
+        <TableContainer component={Paper}>
         <Table>
           <TableHead>
             <TableRow>
@@ -319,11 +267,13 @@ const ClientManagement = () => {
                     <EditIcon />
                   </IconButton>
                   <IconButton
-                    color={client.isActive ? 'error' : 'success'}
-                    onClick={() => handleToggleStatus(client)}
+                    onClick={() => handleDeleteClient(client._id)}
+                    color="error"
+                    disabled={clientsStatus === 'loading'}
+                    aria-label="delete client"
                     size="small"
                   >
-                    {client.isActive ? <DeleteIcon /> : <AddIcon />}
+                    <DeleteIcon />
                   </IconButton>
                 </TableCell>
               </TableRow>
@@ -367,31 +317,6 @@ const ClientManagement = () => {
         </form>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog 
-        open={openDeleteDialog} 
-        onClose={handleCloseDeleteDialog}
-        disableEnforceFocus
-        disableAutoFocus
-        aria-modal="true"
-        role="alertdialog"
-        aria-labelledby="delete-dialog-title"
-      >
-        <DialogTitle id="delete-dialog-title">Delete Client</DialogTitle>
-        <DialogContent>
-          <Typography>
-            Are you sure you want to delete the client "{currentClient?.name}"?
-            This action cannot be undone.
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDeleteDialog}>Cancel</Button>
-          <Button onClick={handleDeleteClient} color="error" variant="contained">
-            Delete
-          </Button>
-        </DialogActions>
-      </Dialog>
-
       {/* Snackbar for notifications */}
       <Snackbar
         open={snackbar.open}
@@ -406,6 +331,7 @@ const ClientManagement = () => {
           {snackbar.message}
         </Alert>
       </Snackbar>
+      </Box>
     </Box>
   );
 };

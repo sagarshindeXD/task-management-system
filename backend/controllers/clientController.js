@@ -23,7 +23,7 @@ exports.createClient = catchAsync(async (req, res, next) => {
 // @route   GET /api/clients
 // @access  Private
 exports.getAllClients = catchAsync(async (req, res, next) => {
-  const clients = await Client.find({ createdBy: req.user._id })
+  const clients = await Client.find({})
     .sort({ name: 1 });
 
   res.status(200).json({
@@ -114,8 +114,7 @@ exports.searchClients = catchAsync(async (req, res, next) => {
   }
 
   const clients = await Client.find({
-    $text: { $search: query },
-    createdBy: req.user._id
+    $text: { $search: query }
   });
 
   res.status(200).json({
@@ -123,6 +122,36 @@ exports.searchClients = catchAsync(async (req, res, next) => {
     results: clients.length,
     data: {
       clients
+    }
+  });
+});
+
+// @desc    Update client status
+// @route   PATCH /api/clients/:id/status
+// @access  Private
+exports.updateClientStatus = catchAsync(async (req, res, next) => {
+  const { isActive } = req.body;
+
+  const client = await Client.findOneAndUpdate(
+    {
+      _id: req.params.id,
+      createdBy: req.user._id
+    },
+    { isActive },
+    {
+      new: true,
+      runValidators: true
+    }
+  );
+
+  if (!client) {
+    return next(new AppError('No client found with that ID', 404));
+  }
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      client
     }
   });
 });

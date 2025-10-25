@@ -153,6 +153,8 @@ const Tasks: React.FC = () => {
         return 'working';
       case 'todo':
         return 'pending';
+      case 'overdue':
+        return 'overdue';
       default:
         return 'pending';
     }
@@ -166,8 +168,48 @@ const Tasks: React.FC = () => {
         return 'in-progress';
       case 'pending':
         return 'todo';
+      case 'overdue':
+        return 'overdue';
       default:
         return 'todo';
+    }
+  };
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'high':
+        return '#f44336'; // Red
+      case 'medium':
+        return '#ff9800'; // Orange
+      case 'low':
+        return '#4caf50'; // Green
+      default:
+        return '#757575'; // Gray
+    }
+  };
+
+  const getTaskRowStyle = (task: any) => {
+    const now = new Date();
+    const dueDate = task.dueDate ? new Date(task.dueDate) : null;
+    const isOverdue = dueDate && dueDate < now && task.status !== 'completed';
+
+    if (isOverdue) {
+      return { backgroundColor: 'rgba(244, 67, 54, 0.1)' }; // Light red for overdue
+    }
+
+    return {};
+  };
+
+  const getPriorityChipColor = (priority: string) => {
+    switch (priority) {
+      case 'high':
+        return 'error';
+      case 'medium':
+        return 'warning';
+      case 'low':
+        return 'success';
+      default:
+        return 'default';
     }
   };
 
@@ -216,6 +258,7 @@ const Tasks: React.FC = () => {
               <TableCell>Department</TableCell>
               <TableCell>Assigned By</TableCell>
               <TableCell>Assigned To</TableCell>
+              <TableCell>Priority</TableCell>
               <TableCell>Assign Date</TableCell>
               <TableCell>Due Date</TableCell>
               <TableCell>Status</TableCell>
@@ -224,7 +267,11 @@ const Tasks: React.FC = () => {
           </TableHead>
           <TableBody>
             {tasks.map((task) => (
-              <TableRow key={task._id} hover>
+              <TableRow
+                key={task._id}
+                hover
+                sx={getTaskRowStyle(task)}
+              >
                 <TableCell>
                   <Typography
                     variant="body2"
@@ -256,7 +303,7 @@ const Tasks: React.FC = () => {
                 <TableCell>
                   <Typography variant="body2">
                     {task.assignedTo && task.assignedTo.length > 0
-                      ? task.assignedTo.map((assigned: User | string) => 
+                      ? task.assignedTo.map((assigned: User | string) =>
                           typeof assigned === 'object' ? assigned.name : assigned
                         ).join(', ')
                       : 'N/A'
@@ -264,12 +311,35 @@ const Tasks: React.FC = () => {
                   </Typography>
                 </TableCell>
                 <TableCell>
+                  <Chip
+                    label={task.priority?.toUpperCase() || 'MEDIUM'}
+                    size="small"
+                    sx={{
+                      backgroundColor: getPriorityColor(task.priority || 'medium'),
+                      color: 'white',
+                      fontWeight: 600,
+                    }}
+                    color={getPriorityChipColor(task.priority || 'medium')}
+                    variant="filled"
+                  />
+                </TableCell>
+                <TableCell>
                   <Typography variant="body2">
                     {task.assignDate ? format(new Date(task.assignDate), 'MMM d, yyyy') : 'N/A'}
                   </Typography>
                 </TableCell>
                 <TableCell>
-                  <Typography variant="body2">
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'completed'
+                        ? 'error.main'
+                        : 'inherit',
+                      fontWeight: task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'completed'
+                        ? 600
+                        : 'normal'
+                    }}
+                  >
                     {task.dueDate ? format(new Date(task.dueDate), 'MMM d, yyyy') : 'N/A'}
                   </Typography>
                 </TableCell>
@@ -284,6 +354,7 @@ const Tasks: React.FC = () => {
                       <MenuItem value="pending">Pending</MenuItem>
                       <MenuItem value="working">Working</MenuItem>
                       <MenuItem value="done">Done</MenuItem>
+                      <MenuItem value="overdue">Overdue</MenuItem>
                     </Select>
                   </FormControl>
                 </TableCell>

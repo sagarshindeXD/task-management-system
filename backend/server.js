@@ -4,10 +4,8 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const morgan = require('morgan');
 
-// Import routes
-const taskRoutes = require('./routes/tasks');
-const userRoutes = require('./routes/users');
-const clientRoutes = require('./routes/clients');
+// Import advanced middleware
+const { securityMiddleware, rateLimits, requestLogger, errorHandler, responseFormatter } = require('./middleware/advanced');
 
 // Initialize express
 const app = express();
@@ -77,6 +75,11 @@ const corsOptions = {
 // Enable preflight for all routes
 app.options('*', cors(corsOptions));
 
+// Security and performance middleware
+securityMiddleware.forEach(middleware => app.use(middleware));
+app.use(responseFormatter);
+app.use(requestLogger);
+
 // Middleware
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
@@ -120,7 +123,11 @@ mongoose.connect(MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 })
-.then(() => console.log('Connected to MongoDB'))
+.then(() => {
+  console.log('Connected to MongoDB');
+  // Start cron jobs for email notifications
+  startCronJobs();
+})
 .catch(err => console.error('MongoDB connection error:', err));
 
 // Root route
@@ -149,16 +156,18 @@ app.get('/health', (req, res) => {
   });
 });
 
-// API Routes
+// API Routes with rate limiting
+app.use('/api/auth', rateLimits.auth);
+app.use('/api/tasks', rateLimits.general);
+app.use('/api/users', rateLimits.general);
+app.use('/api/clients', rateLimits.general);
+
 app.use('/api/tasks', taskRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/clients', clientRoutes);
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Something went wrong!' });
-});
+// Error handling middleware (must be last)
+app.use(errorHandler);
 
 // Start server
 const PORT = process.env.PORT || 5000;

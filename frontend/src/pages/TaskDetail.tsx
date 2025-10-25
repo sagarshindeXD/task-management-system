@@ -49,6 +49,7 @@ import {
   CheckCircle as CompletedIcon,
   PendingActions as InProgressIcon,
   AssignmentLate as TodoIcon,
+  Schedule as OverdueIcon,
   Person as PersonIcon,
   Label as LabelIcon,
   CalendarToday as CalendarIcon,
@@ -66,6 +67,7 @@ const statusOptions = [
   { value: 'todo', label: 'To Do', icon: <TodoIcon /> },
   { value: 'in-progress', label: 'In Progress', icon: <InProgressIcon /> },
   { value: 'completed', label: 'Completed', icon: <CompletedIcon /> },
+  { value: 'overdue', label: 'Overdue', icon: <OverdueIcon /> },
 ];
 
 const priorityOptions = [
@@ -168,6 +170,8 @@ const TaskDetail: React.FC = () => {
         return <CompletedIcon color="success" />;
       case 'in-progress':
         return <InProgressIcon color="primary" />;
+      case 'overdue':
+        return <OverdueIcon color="error" />;
       default:
         return <TodoIcon color="action" />;
     }
@@ -453,6 +457,10 @@ const TaskDetail: React.FC = () => {
                       ...(task.status === 'in-progress' && {
                         bgcolor: 'primary.light',
                         color: 'primary.dark',
+                      }),
+                      ...(task.status === 'overdue' && {
+                        bgcolor: 'error.light',
+                        color: 'error.dark',
                       }),
                     }}
                   />

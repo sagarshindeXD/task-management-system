@@ -1,4 +1,4 @@
-import React from 'react';
+import { useAuth } from '../../context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Drawer,
@@ -19,6 +19,7 @@ import {
   Task as TaskIcon,
   Person as PersonIcon,
   Settings as SettingsIcon,
+  AdminPanelSettings as AdminIcon,
 } from '@mui/icons-material';
 
 // Import the logo
@@ -42,13 +43,18 @@ const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onDrawerToggle }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { user } = useAuth();
 
-  const menuItems: MenuItem[] = [
+  const baseMenuItems: MenuItem[] = [
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
     { text: 'Tasks', icon: <TaskIcon />, path: '/tasks' },
     { text: 'Profile', icon: <PersonIcon />, path: '/profile' },
     { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
   ];
+
+  const menuItems = user?.role === 'admin'
+    ? [...baseMenuItems, { text: 'Admin Panel', icon: <AdminIcon />, path: '/admin' }]
+    : baseMenuItems;
 
   const handleNavigation = (path: string) => {
     navigate(path);

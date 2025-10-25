@@ -1,8 +1,9 @@
-const mongoose = require('mongoose');
-const Task = require('../models/Task');
-const User = require('../models/User');
-const AppError = require('../utils/AppError');
-const catchAsync = require('../utils/catchAsync');
+const {
+  sendTaskAssignedEmail,
+  sendTaskUpdatedEmail,
+  sendTaskCompletedEmail,
+  sendDeadlineReminder,
+} = require('../utils/emailService');
 
 // @desc    Get tasks assigned to the current user
 // @route   GET /api/tasks/assigned-to-me
@@ -155,7 +156,7 @@ exports.updateTaskStatus = catchAsync(async (req, res, next) => {
   }
 
   // Validate status
-  const validStatuses = ['todo', 'in-progress', 'completed'];
+  const validStatuses = ['todo', 'in-progress', 'completed', 'overdue'];
   if (!validStatuses.includes(status)) {
     return next(new AppError('Invalid status value', 400));
   }
@@ -163,6 +164,18 @@ exports.updateTaskStatus = catchAsync(async (req, res, next) => {
   // Update status and save
   task.status = status;
   const updatedTask = await task.save({ validateBeforeSave: false });
+
+  // Send email notifications if task is completed
+  if (status === 'completed') {
+    const populatedTask = await Task.findById(updatedTask._id)
+      .populate('assignedTo', 'name email')
+      .populate('createdBy', 'name email');
+
+    if (populatedTask) {
+      // Send completion email to assignees and creator (async, don't wait)
+      sendTaskCompletedEmail(populatedTask, task.assignedTo, req.user.id);
+    }
+  }
 
   res.status(200).json({
     status: 'success',
@@ -231,6 +244,11 @@ exports.createTask = catchAsync(async (req, res, next) => {
       .populate('assignedTo', 'name email')
       .populate('createdBy', 'name email')
       .populate('client', 'name');
+
+    // Send email notifications to assignees (async, don't wait)
+    if (assignedUsers.length > 0) {
+      sendTaskAssignedEmail(populatedTask, assignedUsers);
+    }
 
     res.status(201).json({
       status: 'success',

@@ -24,7 +24,7 @@ export interface Task {
   _id: string;
   title: string;
   description?: string;
-  status: 'todo' | 'in-progress' | 'completed';
+  status: 'todo' | 'in-progress' | 'completed' | 'overdue';
   priority: 'low' | 'medium' | 'high';
   dueDate?: string;
   assignDate?: string; // When the task was assigned
@@ -595,6 +595,9 @@ const taskSlice = createSlice({
           } else {
             state.myCompletedTasks[completedIndex] = updatedTask;
           }
+        } else if (updatedTask.status === 'overdue') {
+          // For overdue tasks, keep them in the assigned tasks list but mark as overdue
+          state.tasks[personalTaskIndex] = updatedTask;
         } else {
           // For non-completed tasks, just update in place
           state.tasks[personalTaskIndex] = updatedTask;
@@ -625,6 +628,9 @@ const taskSlice = createSlice({
           } else {
             state.teamCompletedTasks[teamCompletedIndex] = updatedTask;
           }
+        } else if (updatedTask.status === 'overdue') {
+          // For overdue tasks, keep them in the team tasks list but mark as overdue
+          state.teamTasks[teamTaskIndex] = updatedTask;
         } else {
           // For non-completed tasks, just update in place
           state.teamTasks[teamTaskIndex] = updatedTask;

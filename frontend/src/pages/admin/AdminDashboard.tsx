@@ -1,6 +1,11 @@
 import React, { useEffect } from 'react';
 import {
   Box,
+  Grid,
+  Card,
+  CardContent,
+  Typography,
+  Button,
   Table,
   TableBody,
   TableCell,
@@ -12,24 +17,24 @@ import {
   Snackbar,
   Alert,
   CircularProgress,
-  Typography,
-  Button
+  Chip,
 } from '@mui/material';
-import { Delete as DeleteIcon } from '@mui/icons-material';
+import {
+  People as PeopleIcon,
+  Business as BusinessIcon,
+  Task as TaskIcon,
+  CheckCircle as CheckCircleIcon,
+  Schedule as ScheduleIcon,
+  Warning as WarningIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+} from '@mui/icons-material';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
 import { RootState } from '../../store/store';
 import { fetchUsers, deleteUser, selectAllUsers, selectUsersStatus, selectUsersError } from '../../features/users/userSlice';
 import { selectCurrentUser } from '../../features/auth/authSlice';
-import api from '../../utils/axios';
-
-type User = {
-  _id: string;
-  name: string;
-  email: string;
-  role: string;
-  avatar?: string;
-  createdAt?: string;
-};
+import { fetchClients, selectAllClients, selectClientsStatus } from '../../features/clients/clientSlice';
+import { fetchAssignedTasks, selectAllTasks, selectTaskStatus } from '../../features/tasks/taskSlice';
 
 const AdminDashboard = () => {
   const dispatch = useAppDispatch();
@@ -37,6 +42,10 @@ const AdminDashboard = () => {
   const users = useAppSelector(selectAllUsers);
   const usersStatus = useAppSelector(selectUsersStatus);
   const usersError = useAppSelector(selectUsersError);
+  const clients = useAppSelector(selectAllClients);
+  const clientsStatus = useAppSelector(selectClientsStatus);
+  const tasks = useAppSelector(selectAllTasks);
+  const tasksStatus = useAppSelector(selectTaskStatus);
 
   const [snackbar, setSnackbar] = React.useState({
     open: false,
@@ -44,22 +53,11 @@ const AdminDashboard = () => {
     severity: 'success' as 'success' | 'error'
   });
 
-  // Debug current user information
-  useEffect(() => {
-    console.log('=== ADMIN DASHBOARD DEBUG INFO ===');
-    console.log('Current user:', currentUser);
-    console.log('Current user role:', currentUser?.role);
-    console.log('Current user ID:', currentUser?._id);
-    console.log('Users in state:', users);
-    console.log('Users status:', usersStatus);
-    console.log('Users error:', usersError);
-    console.log('LocalStorage token:', localStorage.getItem('token'));
-    console.log('=== END DEBUG INFO ===');
-  }, [currentUser, users, usersStatus, usersError]);
-
-  // Fetch users on component mount
+  // Fetch data on component mount
   useEffect(() => {
     dispatch(fetchUsers());
+    dispatch(fetchClients());
+    dispatch(fetchAssignedTasks() as any);
   }, [dispatch]);
 
   const handleDeleteUser = async (userId: string) => {
@@ -88,72 +86,63 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleTestPing = async () => {
-    try {
-      console.log('Testing basic API connectivity...');
-      const response = await api.get('/users/ping');
-      console.log('Ping test response:', response.data);
-      setSnackbar({
-        open: true,
-        message: `API test successful: ${response.data.message}`,
-        severity: 'success'
-      });
-    } catch (error: any) {
-      console.error('Ping test failed:', error);
-      setSnackbar({
-        open: true,
-        message: `API test failed: ${error.response?.data?.message || error.message}`,
-        severity: 'error'
-      });
-    }
-  };
-
-  const handleTestAuth = async () => {
-    try {
-      console.log('Testing authentication...');
-      const response = await api.get('/users/test-auth');
-      console.log('Auth test response:', response.data);
-      setSnackbar({
-        open: true,
-        message: `Auth test successful! Role: ${response.data.data.user.role}`,
-        severity: 'success'
-      });
-    } catch (error: any) {
-      console.error('Auth test failed:', error);
-      setSnackbar({
-        open: true,
-        message: `Auth test failed: ${error.response?.data?.message || error.message}`,
-        severity: 'error'
-      });
-    }
-  };
-
-  const handleTestDelete = async (userId: string) => {
-    try {
-      console.log('Testing delete directly with user ID:', userId);
-      const response = await api.delete(`/users/${userId}`);
-      console.log('Direct delete test response:', response);
-      setSnackbar({
-        open: true,
-        message: `Direct delete test successful!`,
-        severity: 'success'
-      });
-    } catch (error: any) {
-      console.error('Direct delete test failed:', error);
-      console.error('Error response:', error.response);
-      setSnackbar({
-        open: true,
-        message: `Direct delete test failed: ${error.response?.data?.message || error.message}`,
-        severity: 'error'
-      });
-    }
-  };
-
   const handleCloseSnackbar = () => {
     setSnackbar(prev => ({ ...prev, open: false }));
   };
 
-  if (usersStatus === 'loading') {
+  // Calculate statistics
+  const totalUsers = users.length;
+  const adminUsers = users.filter(user => user.role === 'admin').length;
+  const regularUsers = totalUsers - adminUsers;
+
+  const totalClients = clients.length;
+  const activeClients = clients.filter(client => client.isActive).length;
+
+  const totalTasks = tasks.length;
+  const completedTasks = tasks.filter(task => task.status === 'completed').length;
+  const inProgressTasks = tasks.filter(task => task.status === 'in-progress').length;
+  const pendingTasks = tasks.filter(task => task.status === 'todo').length;
+
+  // Calculate overdue tasks (tasks with due date in the past and not completed)
+  const now = new Date();
+  const overdueTasks = tasks.filter(task =>
+    task.dueDate &&
+    new Date(task.dueDate) < now &&
+    task.status !== 'completed'
+  ).length;
+
+  const statsCards = [
+    {
+      title: 'Total Users',
+      value: totalUsers,
+      icon: <PeopleIcon />,
+      color: '#3f51b5',
+      subtitle: `${adminUsers} admins, ${regularUsers} users`,
+    },
+    {
+      title: 'Total Clients',
+      value: totalClients,
+      icon: <BusinessIcon />,
+      color: '#4caf50',
+      subtitle: `${activeClients} active`,
+    },
+    {
+      title: 'Total Tasks',
+      value: totalTasks,
+      icon: <TaskIcon />,
+      color: '#ff9800',
+      subtitle: `${completedTasks} completed`,
+    },
+    {
+      title: 'Overdue Tasks',
+      value: overdueTasks,
+      icon: <WarningIcon />,
+      color: '#f44336',
+      subtitle: 'Need attention',
+    },
+  ];
+
+  if (usersStatus === 'loading' || clientsStatus === 'loading' || tasksStatus === 'loading') {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
         <CircularProgress />
@@ -163,86 +152,238 @@ const AdminDashboard = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom>
-        User Management
+      <Typography variant="h4" gutterBottom sx={{ fontWeight: 600 }}>
+        Admin Dashboard
       </Typography>
 
-      <Box display="flex" gap={2} mb={2}>
-        <Button
-          variant="outlined"
-          onClick={handleTestPing}
-          disabled={usersStatus === 'loading'}
-        >
-          Test API
-        </Button>
-        <Button
-          variant="outlined"
-          onClick={handleTestAuth}
-          disabled={usersStatus === 'loading'}
-        >
-          Test Auth
-        </Button>
-        {users.length > 0 && (
-          <Button
-            variant="outlined"
-            color="warning"
-            onClick={() => handleTestDelete(users[0]._id)}
-            disabled={usersStatus === 'loading'}
-          >
-            Test Delete (First User)
-          </Button>
-        )}
-        <Typography variant="body2" color="text.secondary">
-          Current role: {currentUser?.role || 'unknown'} | Users: {users.length}
-        </Typography>
-      </Box>
+      {/* Statistics Cards */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        {statsCards.map((stat, index) => (
+          <Grid item xs={12} sm={6} md={3} key={index}>
+            <Card
+              sx={{
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                borderRadius: 2,
+                boxShadow: '0 4px 20px 0 rgba(0,0,0,0.05)',
+              }}
+            >
+              <CardContent sx={{ flexGrow: 1 }}>
+                <Box display="flex" alignItems="center" justifyContent="space-between">
+                  <Box>
+                    <Typography color="textSecondary" gutterBottom>
+                      {stat.title}
+                    </Typography>
+                    <Typography variant="h4" component="div" sx={{ fontWeight: 600 }}>
+                      {stat.value}
+                    </Typography>
+                    <Typography variant="body2" color="textSecondary">
+                      {stat.subtitle}
+                    </Typography>
+                  </Box>
+                  <Box
+                    sx={{
+                      backgroundColor: stat.color,
+                      borderRadius: 2,
+                      p: 1,
+                      color: 'white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    {stat.icon}
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
 
-      {usersError && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {usersError}
-        </Alert>
-      )}
+      {/* Quick Actions */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} md={6}>
+          <Card sx={{ borderRadius: 2, boxShadow: '0 4px 20px 0 rgba(0,0,0,0.05)' }}>
+            <CardContent>
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                Quick Actions
+              </Typography>
+              <Box display="flex" gap={2} flexWrap="wrap">
+                <Button
+                  variant="contained"
+                  size="small"
+                  onClick={() => window.location.href = '/admin/users'}
+                  startIcon={<PeopleIcon />}
+                >
+                  Manage Users
+                </Button>
+                <Button
+                  variant="contained"
+                  size="small"
+                  onClick={() => window.location.href = '/admin/clients'}
+                  startIcon={<BusinessIcon />}
+                >
+                  Manage Clients
+                </Button>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => window.location.href = '/tasks'}
+                  startIcon={<TaskIcon />}
+                >
+                  View All Tasks
+                </Button>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
 
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Name</TableCell>
-              <TableCell>Email</TableCell>
-              <TableCell>Role</TableCell>
-              <TableCell align="right">Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {users.length > 0 ? (
-              users.map((user: User) => (
-                <TableRow key={user._id}>
-                  <TableCell>{user.name}</TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>{user.role}</TableCell>
-                  <TableCell align="right">
-                    <IconButton
-                      onClick={() => handleDeleteUser(user._id)}
-                      color="error"
-                      disabled={usersStatus === 'loading'}
-                      aria-label="delete user"
-                    >
-                      <DeleteIcon />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={4} align="center">
+        <Grid item xs={12} md={6}>
+          <Card sx={{ borderRadius: 2, boxShadow: '0 4px 20px 0 rgba(0,0,0,0.05)' }}>
+            <CardContent>
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                Task Status Overview
+              </Typography>
+              <Box display="flex" gap={2} flexWrap="wrap">
+                <Chip
+                  icon={<CheckCircleIcon />}
+                  label={`${completedTasks} Completed`}
+                  color="success"
+                  variant="outlined"
+                />
+                <Chip
+                  icon={<ScheduleIcon />}
+                  label={`${inProgressTasks} In Progress`}
+                  color="primary"
+                  variant="outlined"
+                />
+                <Chip
+                  icon={<TaskIcon />}
+                  label={`${pendingTasks} Pending`}
+                  color="warning"
+                  variant="outlined"
+                />
+                {overdueTasks > 0 && (
+                  <Chip
+                    icon={<WarningIcon />}
+                    label={`${overdueTasks} Overdue`}
+                    color="error"
+                    variant="outlined"
+                  />
+                )}
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* Recent Users */}
+      <Grid container spacing={3}>
+        <Grid item xs={12} md={6}>
+          <Card sx={{ borderRadius: 2, boxShadow: '0 4px 20px 0 rgba(0,0,0,0.05)' }}>
+            <CardContent>
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                Recent Users
+              </Typography>
+              {usersError ? (
+                <Alert severity="error">{usersError}</Alert>
+              ) : users.length === 0 ? (
+                <Typography variant="body2" color="textSecondary">
                   No users found
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
+                </Typography>
+              ) : (
+                <TableContainer>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Name</TableCell>
+                        <TableCell>Email</TableCell>
+                        <TableCell>Role</TableCell>
+                        <TableCell align="right">Actions</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {users.slice(0, 5).map((user) => (
+                        <TableRow key={user._id}>
+                          <TableCell>{user.name}</TableCell>
+                          <TableCell>{user.email}</TableCell>
+                          <TableCell>
+                            <Chip
+                              label={user.role}
+                              size="small"
+                              color={user.role === 'admin' ? 'primary' : 'default'}
+                              variant="outlined"
+                            />
+                          </TableCell>
+                          <TableCell align="right">
+                            <IconButton
+                              onClick={() => handleDeleteUser(user._id)}
+                              color="error"
+                              size="small"
+                              disabled={usersStatus === 'loading'}
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
 
+        <Grid item xs={12} md={6}>
+          <Card sx={{ borderRadius: 2, boxShadow: '0 4px 20px 0 rgba(0,0,0,0.05)' }}>
+            <CardContent>
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                Recent Clients
+              </Typography>
+              {clients.length === 0 ? (
+                <Typography variant="body2" color="textSecondary">
+                  No clients found
+                </Typography>
+              ) : (
+                <TableContainer>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Name</TableCell>
+                        <TableCell>Status</TableCell>
+                        <TableCell>Created</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {clients.slice(0, 5).map((client) => (
+                        <TableRow key={client._id}>
+                          <TableCell>{client.name}</TableCell>
+                          <TableCell>
+                            <Chip
+                              label={client.isActive ? 'Active' : 'Inactive'}
+                              size="small"
+                              color={client.isActive ? 'success' : 'default'}
+                              variant="outlined"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            {client.createdAt ? new Date(client.createdAt).toLocaleDateString() : 'N/A'}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* Snackbar for notifications */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}

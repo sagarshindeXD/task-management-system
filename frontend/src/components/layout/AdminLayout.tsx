@@ -4,7 +4,7 @@ import { useSelector } from 'react-redux';
 import { RootState } from '../../store/store';
 import AdminSidebar from './AdminSidebar';
 import { AppBar, Box, IconButton, Toolbar, Typography } from '@mui/material';
-import MenuIcon from '@mui/icons-material/Menu';
+import { Menu as MenuIcon } from '@mui/icons-material';
 
 const AdminLayout = () => {
   const [mobileOpen, setMobileOpen] = useState(false);

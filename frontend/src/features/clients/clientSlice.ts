@@ -4,7 +4,8 @@ import {
   fetchClients as fetchClientsService,
   createClient as createClientService,
   updateClient as updateClientService,
-  deleteClient as deleteClientService
+  deleteClient as deleteClientService,
+  updateClientStatus as updateClientStatusService
 } from '../../services/clientService';
 import { RootState } from '../../store/store';
 
@@ -118,6 +119,24 @@ export const deleteClient = createAsyncThunk(
   }
 );
 
+export const updateClientStatus = createAsyncThunk(
+  'clients/updateClientStatus',
+  async ({ id, isActive }: { id: string; isActive: boolean }, { getState, rejectWithValue }) => {
+    const token = getToken(getState);
+    if (!token) return rejectWithValue('No authentication token found');
+
+    try {
+      const updatedClient = await updateClientStatusService(id, isActive, token);
+      return {
+        ...updatedClient,
+        updatedAt: updatedClient.updatedAt || new Date().toISOString()
+      } as Client;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to update client status');
+    }
+  }
+);
+
 const clientSlice = createSlice({
   name: 'clients',
   initialState,
@@ -190,6 +209,25 @@ const clientSlice = createSlice({
       }
     });
     builder.addCase(deleteClient.rejected, (state, action) => {
+      state.status = 'failed';
+      state.error = action.payload as string;
+    });
+
+    // Update Client Status
+    builder.addCase(updateClientStatus.pending, (state) => {
+      state.status = 'loading';
+    });
+    builder.addCase(updateClientStatus.fulfilled, (state, action) => {
+      state.status = 'succeeded';
+      const index = state.clients.findIndex(client => client._id === action.payload._id);
+      if (index !== -1) {
+        state.clients[index] = action.payload;
+      }
+      if (state.currentClient?._id === action.payload._id) {
+        state.currentClient = action.payload;
+      }
+    });
+    builder.addCase(updateClientStatus.rejected, (state, action) => {
       state.status = 'failed';
       state.error = action.payload as string;
     });

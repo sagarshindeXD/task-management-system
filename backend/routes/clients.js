@@ -22,4 +22,8 @@ router
   .patch(clientController.updateClient)
   .delete(clientController.deleteClient);
 
+router
+  .route('/:id/status')
+  .patch(clientController.updateClientStatus);
+
 module.exports = router;
