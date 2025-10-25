@@ -48,7 +48,7 @@ const initialState: AuthState = {
   user: null,
   users: [],
   token: localStorage.getItem('token'),
-  isAuthenticated: !!localStorage.getItem('token'), // Set to true if token exists
+  isAuthenticated: false, // Start with false, will be set to true after successful validation
   status: 'idle',
   error: null,
 };
@@ -184,18 +184,27 @@ const authSlice = createSlice({
     },
     // Check if token is expired
     checkTokenExpiration: (state) => {
+      const token = localStorage.getItem('token');
       const expirationTime = localStorage.getItem('tokenExpiration');
-      if (expirationTime) {
+
+      if (token && expirationTime) {
         const now = Date.now();
-        if (now > parseInt(expirationTime)) {
-          // Token is expired
+        const expiration = parseInt(expirationTime);
+
+        if (now > expiration) {
+          // Token is expired, clear everything
+          console.log('Token expired, clearing authentication state');
           localStorage.removeItem('token');
           localStorage.removeItem('tokenExpiration');
           state.user = null;
           state.token = null;
           state.isAuthenticated = false;
-          state.error = 'Session expired';
+          state.error = 'Session expired. Please log in again.';
         }
+      } else if (token && !expirationTime) {
+        // Token exists but no expiration time, might be from old session
+        // For now, we'll keep it but this could be improved
+        console.log('Token exists but no expiration time found');
       }
     },
   },
@@ -266,12 +275,16 @@ const authSlice = createSlice({
         state.status = 'succeeded';
         state.user = action.payload; // payload is the user object directly
         state.isAuthenticated = true;
+        state.error = null;
       })
       .addCase(getMe.rejected, (state, action) => {
         state.status = 'failed';
-        // Don't clear the token or isAuthenticated here
-        // Just set the error message
+        // Clear authentication state on getMe failure
+        state.user = null;
+        state.token = null;
+        state.isAuthenticated = false;
         state.error = action.payload as string;
+        // Don't remove token from localStorage here, let the AuthContext handle it
       })
       // Fetch Users
       .addCase(fetchUsers.pending, (state) => {

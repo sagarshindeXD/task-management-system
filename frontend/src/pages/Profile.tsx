@@ -90,12 +90,11 @@ const Profile: React.FC = () => {
 
   // Get auth state from Redux
   const { token, isAuthenticated } = useSelector((state: RootState) => state.auth);
-  const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
 
   // Fetch user data on component mount or when auth state changes
   useEffect(() => {
     let isMounted = true;
-    
+
     // If we already have user data, we're done loading
     if (user) {
       if (isMounted) {
@@ -104,7 +103,7 @@ const Profile: React.FC = () => {
       }
       return;
     }
-    
+
     // If no token, we can't fetch user data
     if (!token) {
       console.log('No auth token found, user not authenticated');
@@ -113,30 +112,21 @@ const Profile: React.FC = () => {
       }
       return;
     }
-    
-    // If we've already attempted to fetch, don't try again
-    if (hasAttemptedFetch) {
-      if (isMounted) {
-        setIsLoading(false);
-      }
-      return;
-    }
-    
-    // Set loading state and mark that we're attempting to fetch
+
+    // Set loading state
     if (isMounted) {
       setIsLoading(true);
-      setHasAttemptedFetch(true);
     }
-    
+
     const fetchUserData = async () => {
       try {
         console.log('Fetching user data...');
         const result = await dispatch(getMe()).unwrap();
-        
+
         if (!result) {
           throw new Error('No user data received from server');
         }
-        
+
         console.log('User data fetched successfully:', result);
       } catch (error) {
         console.error('Failed to fetch user data:', error);
@@ -155,11 +145,11 @@ const Profile: React.FC = () => {
     };
 
     fetchUserData();
-    
+
     return () => {
       isMounted = false;
     };
-  }, [dispatch, token, user, hasAttemptedFetch]);
+  }, [dispatch, token, user]);
 
   // Profile form
   const profileForm = useFormik({

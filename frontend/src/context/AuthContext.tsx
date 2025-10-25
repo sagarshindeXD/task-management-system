@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { getMe, selectCurrentUser, selectIsAuthenticated, selectAuthStatus, logout, checkTokenExpiration } from '../features/auth/authSlice';
 import { RootState } from '../store/store';
+import { store } from '../store/store';
 
 // Define API base URL
 const API_BASE_URL = 'https://task-management-system-rimh.onrender.com/api';
@@ -71,24 +72,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const checkAuth = async () => {
       const token = localStorage.getItem('token');
 
-      // First check if token is expired
+      if (!token) {
+        console.log('No token found, user not authenticated');
+        setLoading(false);
+        return;
+      }
+
+      // Check if token is expired first
       dispatch(checkTokenExpiration());
 
-      if (token && !isAuthenticated) {
+      // Check current auth state after expiration check
+      const currentAuthState = store.getState().auth;
+
+      if (currentAuthState.isAuthenticated && currentAuthState.user) {
+        console.log('User already authenticated and has user data');
+        setLoading(false);
+        resetSessionTimeout();
+        return;
+      }
+
+      if (currentAuthState.error && currentAuthState.error.includes('expired')) {
+        console.log('Token expired, user needs to login again');
+        setLoading(false);
+        return;
+      }
+
+      // If we have a token but no user data and no error, try to fetch user data
+      if (token && !currentAuthState.user && !currentAuthState.error) {
         try {
-          console.log('Checking authentication on app start...');
+          console.log('Validating token and fetching user data...');
           await dispatch(getMe() as any).unwrap();
-          console.log('Authentication check successful');
-          resetSessionTimeout(); // Start session timeout
+          console.log('Token validation successful');
+          resetSessionTimeout();
         } catch (error) {
-          console.error('Failed to fetch user data on app start:', error);
-          // Clear invalid token
+          console.error('Token validation failed:', error);
+          // Token is invalid, clear it
           localStorage.removeItem('token');
           localStorage.removeItem('tokenExpiration');
         }
-      } else if (!token) {
-        console.log('No token found, user not authenticated');
       }
+
       setLoading(false);
     };
 
@@ -97,7 +120,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } else if (authStatus === 'succeeded' || authStatus === 'failed') {
       setLoading(false);
     }
-  }, [dispatch, isAuthenticated, authStatus]);
+  }, [dispatch, authStatus]);
 
   // Cleanup session timeout on unmount
   useEffect(() => {

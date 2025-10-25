@@ -171,7 +171,21 @@ app.use('/api/clients', clientRoutes);
 // Basic error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).json({ error: 'Something went wrong!' });
+
+  // Check if it's an operational error (AppError)
+  if (err.isOperational) {
+    // AppError - return the specified status code and message
+    return res.status(err.statusCode).json({
+      status: err.status,
+      message: err.message
+    });
+  }
+
+  // For non-operational errors (programming errors, etc.), return 500
+  res.status(500).json({
+    status: 'error',
+    message: 'Something went wrong!'
+  });
 });
 
 // Start server
