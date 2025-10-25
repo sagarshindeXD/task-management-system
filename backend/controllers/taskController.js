@@ -165,17 +165,17 @@ exports.updateTaskStatus = catchAsync(async (req, res, next) => {
   task.status = status;
   const updatedTask = await task.save({ validateBeforeSave: false });
 
-  // Send email notifications if task is completed
-  if (status === 'completed') {
-    const populatedTask = await Task.findById(updatedTask._id)
-      .populate('assignedTo', 'name email')
-      .populate('createdBy', 'name email');
-
-    if (populatedTask) {
-      // Send completion email to assignees and creator (async, don't wait)
-      sendTaskCompletedEmail(populatedTask, task.assignedTo, req.user.id);
-    }
-  }
+  // Send email notifications if task is completed (disabled for deployment - can be enabled later)
+  // if (status === 'completed') {
+  //   const populatedTask = await Task.findById(updatedTask._id)
+  //     .populate('assignedTo', 'name email')
+  //     .populate('createdBy', 'name email');
+  //
+  //   if (populatedTask) {
+  //     // Send completion email to assignees and creator (async, don't wait)
+  //     sendTaskCompletedEmail(populatedTask, task.assignedTo, req.user.id);
+  //   }
+  // }
 
   res.status(200).json({
     status: 'success',
@@ -245,10 +245,10 @@ exports.createTask = catchAsync(async (req, res, next) => {
       .populate('createdBy', 'name email')
       .populate('client', 'name');
 
-    // Send email notifications to assignees (async, don't wait)
-    if (assignedUsers.length > 0) {
-      sendTaskAssignedEmail(populatedTask, assignedUsers);
-    }
+    // Send email notifications to assignees (disabled for deployment - can be enabled later)
+    // if (assignedUsers.length > 0) {
+    //   sendTaskAssignedEmail(populatedTask, assignedUsers);
+    // }
 
     res.status(201).json({
       status: 'success',

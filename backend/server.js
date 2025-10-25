@@ -4,8 +4,20 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const morgan = require('morgan');
 
-// Import advanced middleware
-const { securityMiddleware, rateLimits, requestLogger, errorHandler, responseFormatter } = require('./middleware/advanced');
+// Import routes
+const taskRoutes = require('./routes/tasks');
+const userRoutes = require('./routes/users');
+const clientRoutes = require('./routes/clients');
+
+// Import cron jobs (optional - only if email is configured)
+let startCronJobs;
+try {
+  const cronJobs = require('./utils/cronJobs');
+  startCronJobs = cronJobs.startCronJobs;
+} catch (error) {
+  console.log('Cron jobs not available (email service not configured)');
+  startCronJobs = () => console.log('Email notifications disabled');
+}
 
 // Initialize express
 const app = express();
@@ -75,12 +87,7 @@ const corsOptions = {
 // Enable preflight for all routes
 app.options('*', cors(corsOptions));
 
-// Security and performance middleware
-securityMiddleware.forEach(middleware => app.use(middleware));
-app.use(responseFormatter);
-app.use(requestLogger);
-
-// Middleware
+// Basic middleware
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -125,7 +132,7 @@ mongoose.connect(MONGODB_URI, {
 })
 .then(() => {
   console.log('Connected to MongoDB');
-  // Start cron jobs for email notifications
+  // Start cron jobs for email notifications (only if configured)
   startCronJobs();
 })
 .catch(err => console.error('MongoDB connection error:', err));
@@ -156,23 +163,27 @@ app.get('/health', (req, res) => {
   });
 });
 
-// API Routes with rate limiting
-app.use('/api/auth', rateLimits.auth);
-app.use('/api/tasks', rateLimits.general);
-app.use('/api/users', rateLimits.general);
-app.use('/api/clients', rateLimits.general);
-
+// API Routes
 app.use('/api/tasks', taskRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/clients', clientRoutes);
 
-// Error handling middleware (must be last)
-app.use(errorHandler);
+// Basic error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: 'Something went wrong!' });
+});
 
 // Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  console.log('Available endpoints:');
+  console.log('  GET  /api/users - Get all users (admin only)');
+  console.log('  POST /api/users/login - User login');
+  console.log('  POST /api/users/register - User registration');
+  console.log('  GET  /api/tasks - Get tasks');
+  console.log('  POST /api/tasks - Create task');
+  console.log('  GET  /api/clients - Get clients');
+  console.log('  POST /api/clients - Create client');
 });
-
-module.exports = app;

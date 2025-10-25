@@ -31,10 +31,11 @@ import {
 } from '@mui/icons-material';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
 import { RootState } from '../../store/store';
-import { fetchUsers, deleteUser, selectAllUsers, selectUsersStatus, selectUsersError } from '../../features/users/userSlice';
+import { fetchUsers, deleteUser, selectAllUsers, selectUsersStatus, selectUsersError, User } from '../../features/users/userSlice';
 import { selectCurrentUser } from '../../features/auth/authSlice';
 import { fetchClients, selectAllClients, selectClientsStatus } from '../../features/clients/clientSlice';
-import { fetchAssignedTasks, selectAllTasks, selectTaskStatus } from '../../features/tasks/taskSlice';
+import { fetchAssignedTasks, selectAllTasks, selectTaskStatus, Task } from '../../features/tasks/taskSlice';
+import { Client } from '../../services/clientService';
 
 const AdminDashboard = () => {
   const dispatch = useAppDispatch();
@@ -92,20 +93,20 @@ const AdminDashboard = () => {
 
   // Calculate statistics
   const totalUsers = users.length;
-  const adminUsers = users.filter(user => user.role === 'admin').length;
+  const adminUsers = users.filter((user: User) => user.role === 'admin').length;
   const regularUsers = totalUsers - adminUsers;
 
   const totalClients = clients.length;
-  const activeClients = clients.filter(client => client.isActive).length;
+  const activeClients = clients.filter((client: Client) => client.isActive).length;
 
   const totalTasks = tasks.length;
-  const completedTasks = tasks.filter(task => task.status === 'completed').length;
-  const inProgressTasks = tasks.filter(task => task.status === 'in-progress').length;
-  const pendingTasks = tasks.filter(task => task.status === 'todo').length;
+  const completedTasks = tasks.filter((task: Task) => task.status === 'completed').length;
+  const inProgressTasks = tasks.filter((task: Task) => task.status === 'in-progress').length;
+  const pendingTasks = tasks.filter((task: Task) => task.status === 'todo').length;
 
   // Calculate overdue tasks (tasks with due date in the past and not completed)
   const now = new Date();
-  const overdueTasks = tasks.filter(task =>
+  const overdueTasks = tasks.filter((task: Task) =>
     task.dueDate &&
     new Date(task.dueDate) < now &&
     task.status !== 'completed'
@@ -305,7 +306,7 @@ const AdminDashboard = () => {
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {users.slice(0, 5).map((user) => (
+                      {users.slice(0, 5).map((user: User) => (
                         <TableRow key={user._id}>
                           <TableCell>{user.name}</TableCell>
                           <TableCell>{user.email}</TableCell>
@@ -358,7 +359,7 @@ const AdminDashboard = () => {
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {clients.slice(0, 5).map((client) => (
+                      {clients.slice(0, 5).map((client: Client) => (
                         <TableRow key={client._id}>
                           <TableCell>{client.name}</TableCell>
                           <TableCell>

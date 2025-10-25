@@ -1,6 +1,7 @@
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 const express = require('express');
+const AppError = require('../utils/AppError');
 
 // Rate limiting middleware
 const createRateLimit = (windowMs, max, message) => {

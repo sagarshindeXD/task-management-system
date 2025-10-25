@@ -25,13 +25,12 @@ import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from '@mui/ico
 import { useAppDispatch, useAppSelector } from '../../hooks/reduxHooks';
 import { RootState } from '../../store/store';
 import {
-  fetchClients,
   createClient,
   updateClient,
   deleteClient as deleteClientApi,
   Client
 } from '../../services/clientService';
-import { deleteClient, selectAllClients, selectClientsStatus, selectClientsError, updateClientStatus } from '../../features/clients/clientSlice';
+import { deleteClient, fetchClients, selectAllClients, selectClientsStatus, selectClientsError, updateClientStatus } from '../../features/clients/clientSlice';
 
 
 const ClientManagement = () => {
@@ -267,7 +266,7 @@ const ClientManagement = () => {
                     <EditIcon />
                   </IconButton>
                   <IconButton
-                    onClick={() => handleDeleteClient(client._id)}
+                    onClick={() => client._id && handleDeleteClient(client._id)}
                     color="error"
                     disabled={clientsStatus === 'loading'}
                     aria-label="delete client"
@@ -331,7 +330,6 @@ const ClientManagement = () => {
           {snackbar.message}
         </Alert>
       </Snackbar>
-      </Box>
     </Box>
   );
 };
