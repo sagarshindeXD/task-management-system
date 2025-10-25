@@ -181,19 +181,27 @@ exports.getAllUsers = catchAsync(async (req, res, next) => {
 exports.deleteUserById = catchAsync(async (req, res, next) => {
   const { id } = req.params;
 
+  console.log('deleteUserById called with ID:', id);
+  console.log('Request user:', req.user);
+
   // Check if user exists
   const user = await User.findById(id);
+  console.log('User found in database:', user);
+
   if (!user) {
+    console.log('User not found, returning 404');
     return next(new AppError('No user found with that ID', 404));
   }
 
   // Prevent deleting admin users (optional safety check)
   if (user.role === 'admin') {
+    console.log('Attempted to delete admin user, returning 403');
     return next(new AppError('Cannot delete admin users', 403));
   }
 
   // Delete the user
   await User.findByIdAndDelete(id);
+  console.log('User deleted successfully:', id);
 
   res.status(204).json({
     status: 'success',

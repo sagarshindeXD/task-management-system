@@ -18,6 +18,7 @@ import { Delete as DeleteIcon } from '@mui/icons-material';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
 import { RootState } from '../../store/store';
 import { fetchUsers, deleteUser, selectAllUsers, selectUsersStatus, selectUsersError } from '../../features/users/userSlice';
+import { selectCurrentUser } from '../../features/auth/authSlice';
 
 type User = {
   _id: string;
@@ -30,6 +31,7 @@ type User = {
 
 const AdminDashboard = () => {
   const dispatch = useAppDispatch();
+  const currentUser = useAppSelector(selectCurrentUser);
   const users = useAppSelector(selectAllUsers);
   const usersStatus = useAppSelector(selectUsersStatus);
   const usersError = useAppSelector(selectUsersError);
@@ -40,24 +42,36 @@ const AdminDashboard = () => {
     severity: 'success' as 'success' | 'error'
   });
 
+  // Debug current user information
+  useEffect(() => {
+    console.log('Current user:', currentUser);
+    console.log('Current user role:', currentUser?.role);
+    console.log('Users in state:', users);
+  }, [currentUser, users]);
+
   // Fetch users on component mount
   useEffect(() => {
     dispatch(fetchUsers());
   }, [dispatch]);
 
   const handleDeleteUser = async (userId: string) => {
+    console.log('Attempting to delete user:', userId);
+
     if (!window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
       return;
     }
 
     try {
+      console.log('Dispatching deleteUser action...');
       await dispatch(deleteUser(userId)).unwrap();
+      console.log('User deleted successfully');
       setSnackbar({
         open: true,
         message: 'User deleted successfully',
         severity: 'success'
       });
     } catch (error: any) {
+      console.error('Delete user failed:', error);
       setSnackbar({
         open: true,
         message: error?.message || 'Failed to delete user',

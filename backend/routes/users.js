@@ -23,6 +23,11 @@ router.route('/')
   .get(authorize('admin'), userController.getAllUsers);
 
 router.route('/:id')
-  .delete(authorize('admin'), userController.deleteUserById);
+  .delete(authorize('admin'), (req, res, next) => {
+    console.log('DELETE request received for user ID:', req.params.id);
+    console.log('Current user role:', req.user?.role);
+    console.log('Current user ID:', req.user?.id);
+    userController.deleteUserById(req, res, next);
+  });
 
 module.exports = router;
