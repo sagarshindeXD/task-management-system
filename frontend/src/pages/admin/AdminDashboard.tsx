@@ -15,8 +15,9 @@ import {
   Typography
 } from '@mui/material';
 import { Delete as DeleteIcon } from '@mui/icons-material';
-import { useAppDispatch, useAppSelector } from '../../hooks/reduxHooks';
-import { fetchUsers, deleteUser, selectCurrentUser, AuthStatus } from '../../features/auth/authSlice';
+import { useAppDispatch, useAppSelector } from '../../app/hooks';
+import { RootState } from '../../store/store';
+import { fetchUsers, deleteUser, selectAllUsers, selectUsersStatus, selectUsersError } from '../../features/users/userSlice';
 
 type User = {
   _id: string;
@@ -29,8 +30,9 @@ type User = {
 
 const AdminDashboard = () => {
   const dispatch = useAppDispatch();
-  const currentUser = useAppSelector(selectCurrentUser);
-  const { users, status: usersStatus, error: usersError } = useAppSelector((state) => state.auth);
+  const users = useAppSelector(selectAllUsers);
+  const usersStatus = useAppSelector(selectUsersStatus);
+  const usersError = useAppSelector(selectUsersError);
 
   const [snackbar, setSnackbar] = React.useState({
     open: false,
@@ -100,7 +102,7 @@ const AdminDashboard = () => {
           </TableHead>
           <TableBody>
             {users.length > 0 ? (
-              users.map((user) => (
+              users.map((user: User) => (
                 <TableRow key={user._id}>
                   <TableCell>{user.name}</TableCell>
                   <TableCell>{user.email}</TableCell>
@@ -109,7 +111,7 @@ const AdminDashboard = () => {
                     <IconButton
                       onClick={() => handleDeleteUser(user._id)}
                       color="error"
-                      disabled={(currentUser && user._id === currentUser._id) || (usersStatus as AuthStatus) === 'loading'}
+                      disabled={usersStatus === 'loading'}
                       aria-label="delete user"
                     >
                       <DeleteIcon />

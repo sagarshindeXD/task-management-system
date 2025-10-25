@@ -170,7 +170,33 @@ exports.getAllUsers = catchAsync(async (req, res, next) => {
     status: 'success',
     results: users.length,
     data: {
-      users
+      users: users // Make sure this matches frontend expectation
     }
+  });
+});
+
+// @desc    Delete user by ID (admin only)
+// @route   DELETE /api/users/:id
+// @access  Private/Admin
+exports.deleteUserById = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+
+  // Check if user exists
+  const user = await User.findById(id);
+  if (!user) {
+    return next(new AppError('No user found with that ID', 404));
+  }
+
+  // Prevent deleting admin users (optional safety check)
+  if (user.role === 'admin') {
+    return next(new AppError('Cannot delete admin users', 403));
+  }
+
+  // Delete the user
+  await User.findByIdAndDelete(id);
+
+  res.status(204).json({
+    status: 'success',
+    data: null
   });
 });

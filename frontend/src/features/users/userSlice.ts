@@ -1,5 +1,6 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import api from '../../utils/axios';
+import { RootState } from '../../store/store';
 
 export interface User {
   _id: string;
@@ -73,9 +74,30 @@ const userSlice = createSlice({
       .addCase(fetchUsers.rejected, (state, action) => {
         state.status = 'failed';
         state.error = action.payload as string;
+      })
+      // Delete User
+      .addCase(deleteUser.fulfilled, (state, action) => {
+        state.users = state.users.filter(user => user._id !== action.payload);
+        state.status = 'succeeded';
+      })
+      .addCase(deleteUser.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload as string;
       });
   },
 });
+
+export const deleteUser = createAsyncThunk<string, string, { state: RootState; rejectValue: string }>(
+  'users/deleteUser',
+  async (userId, { rejectWithValue }) => {
+    try {
+      await api.delete(`/users/${userId}`);
+      return userId;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to delete user');
+    }
+  }
+);
 
 export const selectAllUsers = (state: any) => state.users.users;
 export const selectUsersStatus = (state: any) => state.users.status;
