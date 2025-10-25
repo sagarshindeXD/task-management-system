@@ -81,7 +81,10 @@ export const createClient = createAsyncThunk(
         isActive: newClient.isActive ?? true
       } as Client;
     } catch (error: any) {
-      return rejectWithValue(error.message || error.response?.data?.message || 'Failed to create client');
+      return rejectWithValue({
+        message: error.message || 'Failed to create client',
+        status: error?.status || 500
+      });
     }
   }
 );
@@ -99,7 +102,10 @@ export const updateClient = createAsyncThunk(
         updatedAt: updatedClient.updatedAt || new Date().toISOString()
       } as Client;
     } catch (error: any) {
-      return rejectWithValue(error.message || error.response?.data?.message || 'Failed to update client');
+      return rejectWithValue({
+        message: error.message || 'Failed to update client',
+        status: error?.status || 500
+      });
     }
   }
 );
@@ -109,15 +115,19 @@ export const deleteClient = createAsyncThunk(
   async (id: string, { getState, rejectWithValue }) => {
     const token = getToken(getState);
     if (!token) return rejectWithValue('No authentication token found');
-    
+
     try {
       await deleteClientService(id, token);
       return id;
     } catch (error: any) {
       console.log('Redux deleteClient error:', error);
+
+      // The service now includes the status code in the error object
+      const statusCode = error?.status || 500;
+
       return rejectWithValue({
-        message: error.message || error.response?.data?.message || 'Failed to delete client',
-        status: error.response?.status || 500
+        message: error.message || 'Failed to delete client',
+        status: statusCode
       });
     }
   }
@@ -136,7 +146,10 @@ export const updateClientStatus = createAsyncThunk(
         updatedAt: updatedClient.updatedAt || new Date().toISOString()
       } as Client;
     } catch (error: any) {
-      return rejectWithValue(error.message || error.response?.data?.message || 'Failed to update client status');
+      return rejectWithValue({
+        message: error.message || 'Failed to update client status',
+        status: error?.status || 500
+      });
     }
   }
 );
@@ -179,7 +192,14 @@ const clientSlice = createSlice({
     });
     builder.addCase(createClient.rejected, (state, action) => {
       state.status = 'failed';
-      state.error = action.payload as string;
+      // Handle both string and object error payloads
+      if (typeof action.payload === 'string') {
+        state.error = action.payload;
+      } else if (action.payload && typeof action.payload === 'object' && 'message' in action.payload) {
+        state.error = (action.payload as { message: string }).message;
+      } else {
+        state.error = 'Failed to create client';
+      }
     });
 
     // Update Client
@@ -198,7 +218,14 @@ const clientSlice = createSlice({
     });
     builder.addCase(updateClient.rejected, (state, action) => {
       state.status = 'failed';
-      state.error = action.payload as string;
+      // Handle both string and object error payloads
+      if (typeof action.payload === 'string') {
+        state.error = action.payload;
+      } else if (action.payload && typeof action.payload === 'object' && 'message' in action.payload) {
+        state.error = (action.payload as { message: string }).message;
+      } else {
+        state.error = 'Failed to update client';
+      }
     });
 
     // Delete Client
@@ -240,7 +267,14 @@ const clientSlice = createSlice({
     });
     builder.addCase(updateClientStatus.rejected, (state, action) => {
       state.status = 'failed';
-      state.error = action.payload as string;
+      // Handle both string and object error payloads
+      if (typeof action.payload === 'string') {
+        state.error = action.payload;
+      } else if (action.payload && typeof action.payload === 'object' && 'message' in action.payload) {
+        state.error = (action.payload as { message: string }).message;
+      } else {
+        state.error = 'Failed to update client status';
+      }
     });
   },
 });

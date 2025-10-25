@@ -103,7 +103,9 @@ export const createClient = async (clientData: Omit<Client, '_id'>, token: strin
     } catch (parseError) {
       errorMessage = `Failed to create client. Status: ${response.status}`;
     }
-    throw new Error(errorMessage);
+    const error = new Error(errorMessage);
+    (error as any).status = response.status;
+    throw error;
   }
 
   return response.json();
@@ -127,7 +129,9 @@ export const updateClient = async (id: string, clientData: Partial<Client>, toke
     } catch (parseError) {
       errorMessage = `Failed to update client. Status: ${response.status}`;
     }
-    throw new Error(errorMessage);
+    const error = new Error(errorMessage);
+    (error as any).status = response.status;
+    throw error;
   }
 
   return response.json();
@@ -162,7 +166,10 @@ export const deleteClient = async (id: string, token: string): Promise<void> => 
     }
 
     console.log('Throwing error with message:', errorMessage);
-    throw new Error(errorMessage);
+    const error = new Error(errorMessage);
+    // Include status code in the error object
+    (error as any).status = response.status;
+    throw error;
   }
 };
 
@@ -184,7 +191,9 @@ export const updateClientStatus = async (id: string, isActive: boolean, token: s
     } catch (parseError) {
       errorMessage = `Failed to update client status. Status: ${response.status}`;
     }
-    throw new Error(errorMessage);
+    const error = new Error(errorMessage);
+    (error as any).status = response.status;
+    throw error;
   }
 
   return response.json();
