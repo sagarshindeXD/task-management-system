@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../hooks/reduxHooks';
-import { store } from '../store/store';
+import { useTheme } from '@mui/material/styles';
+import Link from '@mui/material/Link';
 import { RootState } from '../store/store';
 import {
   fetchAssignedTasks,
@@ -19,6 +20,8 @@ import {
   User,
 } from '../features/tasks/taskSlice';
 import { selectCurrentUser } from '../features/auth/authSlice';
+import { selectAllClients } from '../features/clients/clientSlice';
+import { selectAllUsers } from '../features/users/userSlice';
 import {
   Box,
   Typography,
@@ -86,6 +89,7 @@ function a11yProps(index: number) {
 const Tasks: React.FC = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const theme = useTheme();
 
   // Get user info
   const currentUser = useAppSelector(selectCurrentUser);
@@ -98,16 +102,21 @@ const Tasks: React.FC = () => {
   const teamTasks = useAppSelector(selectTeamTasks);
   const teamCompletedTasks = useAppSelector(selectTeamCompletedTasks);
   const assignedTasks = useAppSelector(selectAllTasks); // Get the tasks from state
+  
+  // Get clients and users data
+  const clients = useAppSelector(selectAllClients);
+  const users = useAppSelector(selectAllUsers);
 
   // Local state for tabs
   const [activeTab, setActiveTab] = useState(0);
 
   // Fetch data on component mount
+  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const state = store.getState() as RootState;
-        if (state.auth.isAuthenticated) {
+        if (isAuthenticated) {
           await dispatch(fetchAssignedTasks() as any);
           // These endpoints return real data from backend now
           await dispatch(fetchMyCompletedTasks() as any);
@@ -270,24 +279,47 @@ const Tasks: React.FC = () => {
               <TableRow
                 key={task._id}
                 hover
-                sx={getTaskRowStyle(task)}
+                sx={{
+                  ...getTaskRowStyle(task),
+                  '&:hover': {
+                    cursor: 'pointer',
+                    backgroundColor: theme => theme.palette.action.hover,
+                  },
+                }}
+                onClick={(e) => {
+                  // Don't navigate if clicking on action buttons
+                  const target = e.target as HTMLElement;
+                  if (!target.closest('.task-actions') && !target.closest('button') && !target.closest('a')) {
+                    navigate(`/tasks/${task._id}`);
+                  }
+                }}
               >
                 <TableCell>
-                  <Typography
-                    variant="body2"
+                  <Link
+                    component={RouterLink}
+                    to={`/tasks/${task._id}`}
+                    color="inherit"
+                    underline="hover"
                     sx={{
                       maxWidth: 200,
+                      display: 'inline-block',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap',
+                      textDecoration: 'none',
+                      '&:hover': {
+                        textDecoration: 'underline',
+                      },
                     }}
                   >
                     {task.title}
-                  </Typography>
+                  </Link>
                 </TableCell>
                 <TableCell>
                   <Typography variant="body2">
-                    {typeof task.client === 'object' ? task.client.name : task.client || 'N/A'}
+                    {task.client && typeof task.client === 'object' 
+                      ? task.client.name 
+                      : clients.find(c => c._id === task.client)?.name || 'N/A'}
                   </Typography>
                 </TableCell>
                 <TableCell>
@@ -297,17 +329,20 @@ const Tasks: React.FC = () => {
                 </TableCell>
                 <TableCell>
                   <Typography variant="body2">
-                    {typeof task.assignedBy === 'object' ? task.assignedBy.name : task.assignedBy || 'N/A'}
+                    {task.assignedBy && typeof task.assignedBy === 'object' 
+                      ? task.assignedBy.name 
+                      : users.find((u: User) => u._id === task.assignedBy)?.name || 'N/A'}
                   </Typography>
                 </TableCell>
                 <TableCell>
                   <Typography variant="body2">
                     {task.assignedTo && task.assignedTo.length > 0
-                      ? task.assignedTo.map((assigned: User | string) =>
-                          typeof assigned === 'object' ? assigned.name : assigned
-                        ).join(', ')
-                      : 'N/A'
-                    }
+                      ? task.assignedTo.map((assigned: { name: string } | string) => 
+                          typeof assigned === 'object' 
+                            ? assigned.name 
+                            : users.find((u: User) => u._id === assigned)?.name || assigned
+                        ).filter(Boolean).join(', ') 
+                      : 'N/A'}
                   </Typography>
                 </TableCell>
                 <TableCell>
@@ -358,47 +393,27 @@ const Tasks: React.FC = () => {
                     </Select>
                   </FormControl>
                 </TableCell>
-                <TableCell sx={{ textAlign: 'right' }}>
-                  <Box
-                    display="flex"
-                    gap={0.5}
-                    alignItems="center"
-                    justifyContent="flex-end"
-                    sx={{
-                      minHeight: '40px',
-                      padding: '4px 0'
+                <TableCell className="task-actions">
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEditTask(task._id);
                     }}
+                    color="primary"
                   >
-                    <Tooltip title="Edit">
-                      <IconButton
-                        size="small"
-                        onClick={() => handleEditTask(task._id)}
-                        sx={{
-                          padding: '6px',
-                          '&:hover': {
-                            backgroundColor: 'rgba(25, 118, 210, 0.04)'
-                          }
-                        }}
-                      >
-                        <EditIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Delete">
-                      <IconButton
-                        size="small"
-                        onClick={() => handleDeleteTask(task._id)}
-                        color="error"
-                        sx={{
-                          padding: '6px',
-                          '&:hover': {
-                            backgroundColor: 'rgba(211, 47, 47, 0.04)'
-                          }
-                        }}
-                      >
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  </Box>
+                    <EditIcon fontSize="small" />
+                  </IconButton>
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteTask(task._id);
+                    }}
+                    color="error"
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
                 </TableCell>
               </TableRow>
             ))}

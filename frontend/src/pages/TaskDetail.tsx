@@ -10,6 +10,7 @@ import {
   selectTaskError,
   clearCurrentTask,
 } from '../features/tasks/taskSlice';
+import { selectAllClients } from '../features/clients/clientSlice';
 import {
   Box,
   Typography,
@@ -95,6 +96,7 @@ const TaskDetail: React.FC = () => {
   const task = useAppSelector(selectCurrentTask);
   const status = useAppSelector(selectTaskStatus);
   const error = useAppSelector(selectTaskError);
+  const clients = useAppSelector(selectAllClients);
   
   // Local state
   const [isEditing, setIsEditing] = useState(false);
@@ -530,7 +532,7 @@ const TaskDetail: React.FC = () => {
                 <Box mb={4}>
                   <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
                     <PersonIcon sx={{ mr: 1, color: 'text.secondary' }} />
-                    Assigned To
+                    Assigned By
                   </Typography>
                   <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
                     <Box display="flex" alignItems="center">
@@ -564,26 +566,41 @@ const TaskDetail: React.FC = () => {
                 
                 <Box mb={4}>
                   <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-                    <LabelIcon sx={{ mr: 1, color: 'text.secondary' }} />
-                    Labels
+                    <PersonIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                    Client
                   </Typography>
                   <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
-                    {task.labels && task.labels.length > 0 ? (
-                      <Box display="flex" flexWrap="wrap" gap={1}>
-                        {task.labels.map((label, index) => (
-                          <Chip 
-                            key={index} 
-                            label={label} 
-                            size="small"
-                            variant="outlined"
-                            onDelete={() => {}}
-                            sx={{ cursor: 'pointer' }}
-                          />
-                        ))}
+                    {task.client ? (
+                      <Box display="flex" alignItems="center">
+                        <Avatar 
+                          sx={{ 
+                            width: 32, 
+                            height: 32, 
+                            bgcolor: 'primary.main',
+                            mr: 2,
+                            fontSize: '0.875rem'
+                          }}
+                        >
+                          {typeof task.client === 'object' 
+                            ? task.client.name?.charAt(0)?.toUpperCase() 
+                            : task.client?.charAt(0)?.toUpperCase() || 'C'}
+                        </Avatar>
+                        <Box>
+                          <Typography variant="subtitle2">
+                            {typeof task.client === 'object' 
+                              ? task.client.name 
+                              : clients.find(c => c._id === task.client)?.name || 'Client not found'}
+                          </Typography>
+                          {typeof task.client === 'object' && task.client.email && (
+                            <Typography variant="caption" color="text.secondary">
+                              {task.client.email}
+                            </Typography>
+                          )}
+                        </Box>
                       </Box>
                     ) : (
                       <Typography variant="body2" color="text.secondary">
-                        No labels
+                        No client assigned
                       </Typography>
                     )}
                   </Paper>
